@@ -1,5 +1,5 @@
-/* Marée — service worker : l'interface fonctionne hors ligne, les prévisions restent en ligne. */
-const CACHE = "maree-v1";
+/* Que Pican! — service worker : l'interface fonctionne hors ligne, les prévisions restent en ligne. */
+const CACHE = "que-pican-v3";
 const SHELL = ["./", "index.html", "manifest.webmanifest", "icons/icon.svg", "icons/icon-192.png", "icons/icon-512.png"];
 
 self.addEventListener("install", (e) => {

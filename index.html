@@ -3,14 +3,14 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Marée</title>
+<title>Que Pican!</title>
 <meta name="description" content="Prévisions de touche pour la mer, les lacs et les rivières.">
 <meta name="theme-color" content="#06131F">
 <meta name="color-scheme" content="dark">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="Marée">
+<meta name="apple-mobile-web-app-title" content="Que Pican!">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
@@ -19,7 +19,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,600;0,700;0,800;1,700;1,800&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
 <style>
-/* ===== Marée — thème « néon marin » ===== */
+/* ===== Que Pican! — thème « néon marin » ===== */
 :root{
   --abyss:#06131F; --card:#0D2132; --card2:#12304A; --line:rgba(255,255,255,.09);
   --text:#EEF6FA; --soft:#DCE8EF; --dim:#93AEC1;
@@ -48,8 +48,8 @@ button{cursor:pointer}
 /* ----- En-tête ----- */
 header.top{position:sticky;top:0;z-index:1000;padding-top:env(safe-area-inset-top,0px);background:rgba(6,19,31,.86);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);border-bottom:1px solid var(--line)}
 .bar{max-width:760px;margin:0 auto;display:flex;align-items:center;gap:8px;padding:10px 16px}
-.brand{display:flex;align-items:center;gap:8px;margin-right:auto;font-size:1.85rem;font-weight:800;font-style:italic;letter-spacing:1px;line-height:1;text-transform:uppercase}
-.brand i{width:34px;height:34px;border-radius:11px;background:var(--accent);display:grid;place-items:center}
+.brand{display:flex;align-items:center;gap:8px;margin-right:auto;white-space:nowrap;font-size:1.7rem;font-weight:800;font-style:italic;letter-spacing:1px;line-height:1;text-transform:uppercase}
+.brand i{flex:none;width:38px;height:38px;border-radius:11px;background:var(--accent);display:grid;place-items:center}
 .lang{display:flex;background:var(--card);border:1px solid var(--line);border-radius:999px;padding:3px}
 .lang button{background:none;border:0;color:var(--dim);padding:6px 11px;border-radius:999px;font-weight:800;font-size:.78rem}
 .lang button[aria-pressed="true"]{background:var(--text);color:var(--abyss)}
@@ -182,7 +182,7 @@ footer{margin-top:32px;color:var(--dim);font-size:.78rem;line-height:1.55}
 /* Titres de page plus présents */
 #page-species>h2,#page-log>h2{font-size:2.5rem;font-weight:800;font-style:italic;line-height:1;margin:6px 0 10px}
 
-@media (max-width:340px){.plan .controls,.logform{grid-template-columns:1fr}}@media (max-width:420px){.hero .big{font-size:3.3rem}.brand{font-size:1.6rem}}
+@media (max-width:340px){.plan .controls,.logform{grid-template-columns:1fr}}@media (max-width:420px){.hero .big{font-size:3.3rem}.brand{font-size:1.4rem;gap:6px}.brand i{width:34px;height:34px}.bar{gap:6px;padding:10px 12px}.lang button{padding:6px 9px}#country{max-width:84px;padding:8px 10px}}
 @media (min-width:768px){nav.tabs{bottom:20px}}
 @media (prefers-reduced-motion:no-preference){
   .hero{animation:rise .5s cubic-bezier(.2,.8,.2,1)}
@@ -195,7 +195,7 @@ footer{margin-top:32px;color:var(--dim);font-size:.78rem;line-height:1.55}
 <body>
 <header class="top">
   <div class="bar">
-    <div class="brand"><i aria-hidden="true"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#06131F" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M2 15c2.5 0 2.5-2 5-2s2.5 2 5 2 2.5-2 5-2 2.5 2 5 2"/><path d="M2 20c2.5 0 2.5-2 5-2s2.5 2 5 2 2.5-2 5-2 2.5 2 5 2"/><path d="M12 3v7"/><path d="M9 7l3 3 3-3"/></svg></i>Marée</div>
+    <div class="brand"><i aria-hidden="true"><svg width="28" height="28" viewBox="0 0 64 64"><g fill="#06131F"><path d="M20 15.5 L22.5 7 L25.5 13.5 L28.5 6 L31 13 L34 6.5 L36 13.5 L38.5 8.5 L40 15 Q46 13.5 49 19 L49.5 24 Z"/><path d="M6 22 Q11 18 17 16.5 Q27 13 39 15.2 Q47 17 51.5 25 L59.5 16.5 Q62.5 17.5 61.5 20.5 L57.5 32 L61.5 43.5 Q62.5 46.5 59.5 47.5 L51.5 39 Q46 47.5 36 49.8 Q22 52 13 46 Q8 43.5 4.2 40.8 Q3 38.6 5.6 38 L19.5 32.2 Z"/><path d="M33 49.5 L37 57 L41.5 56 L43 48 Z"/></g><circle cx="22.8" cy="24.6" r="3.3" fill="#C8FF2E"/><circle cx="23.4" cy="24.4" r="1.6" fill="#06131F"/><path d="M28.5 21 Q32 29 28 38" fill="none" stroke="#C8FF2E" stroke-width="1.6" stroke-linecap="round"/><path d="M33 31.5 Q42 30 51 32" fill="none" stroke="#C8FF2E" stroke-width="1.4" stroke-linecap="round" stroke-dasharray="2.6 2.2"/></svg></i>Que Pican!</div>
     <div class="lang" role="group" aria-label="Language / Langue">
       <button type="button" data-lang="fr">FR</button>
       <button type="button" data-lang="en">EN</button>
@@ -305,7 +305,7 @@ en:{
  tabForecast:"Forecast",tabMap:"Map",tabSpecies:"Species",tabLog:"Log",
  tagline:"Bite forecasts for the sea, lakes and rivers.",
  useLocation:"Use my location",locating:"Locating…",waterType:"Water type",
- groupSea:"Sea and coast",groupLake:"Lakes",groupRiver:"Rivers",custom:"Custom spot",
+ groupSea:"Sea and coast",regAquitaine:"Aquitaine region",regOther:"Other regions",groupLake:"Lakes",groupRiver:"Rivers",custom:"Custom spot",
  sea:"Sea",lake:"Lake",river:"River",auto:"Detect automatically",
  loading:"Loading forecast for {spot}…",
  loadError:"The forecast didn't load. Check that you're online and that the page is open in a normal web browser, then tap Retry.",
@@ -376,7 +376,7 @@ fr:{
  tabForecast:"Prévisions",tabMap:"Carte",tabSpecies:"Espèces",tabLog:"Carnet",
  tagline:"Prévisions de touche pour la mer, les lacs et les rivières.",
  useLocation:"Ma position",locating:"Localisation…",waterType:"Type d'eau",
- groupSea:"Mer et littoral",groupLake:"Lacs",groupRiver:"Rivières",custom:"Spot personnalisé",
+ groupSea:"Mer et littoral",regAquitaine:"Région Aquitaine",regOther:"Autres régions",groupLake:"Lacs",groupRiver:"Rivières",custom:"Spot personnalisé",
  sea:"Mer",lake:"Lac",river:"Rivière",auto:"Détection automatique",
  loading:"Chargement des prévisions pour {spot}…",
  loadError:"Les prévisions n'ont pas pu être chargées. Vérifiez votre connexion et ouvrez la page dans un navigateur classique, puis touchez Réessayer.",
@@ -451,8 +451,11 @@ const COUNTRIES = {
    {name:"Dunkerque",lat:51.06,lon:2.35,type:"sea"},{name:"Cherbourg",lat:49.66,lon:-1.62,type:"sea"},
    {name:"Saint-Malo",lat:48.66,lon:-2.03,type:"sea"},{name:"Brest",lat:48.33,lon:-4.62,type:"sea"},
    {name:"Quiberon",lat:47.48,lon:-3.12,type:"sea"},{name:"Île de Ré",lat:46.17,lon:-1.42,type:"sea"},
-   {name:"Arcachon / Cap Ferret",lat:44.62,lon:-1.27,type:"sea"},{name:"Biarritz",lat:43.49,lon:-1.58,type:"sea"},
+   {name:"Arcachon / Cap Ferret",lat:44.62,lon:-1.27,type:"sea"},{name:"Petit Nice (La Teste-de-Buch)",lat:44.565,lon:-1.247,type:"sea"},
+   {name:"Mimizan Plage",lat:44.214,lon:-1.300,type:"sea",def:true},{name:"Lespecier Plage (Mimizan)",lat:44.154,lon:-1.306,type:"sea"},{name:"Biarritz",lat:43.49,lon:-1.58,type:"sea"},
    {name:"Marseille",lat:43.27,lon:5.30,type:"sea"},{name:"Nice",lat:43.68,lon:7.27,type:"sea"},
+   {name:"Lac d'Aureilhan",lat:44.216,lon:-1.205,type:"lake",region:"aquitaine"},{name:"Étang de Biscarrosse et de Parentis",lat:44.35,lon:-1.16,type:"lake",region:"aquitaine"},
+   {name:"Étang de Cazaux-Sanguinet",lat:44.49,lon:-1.18,type:"lake",region:"aquitaine"},
    {name:"Lac du Der",lat:48.58,lon:4.74,type:"lake"},{name:"Lac d'Annecy",lat:45.86,lon:6.17,type:"lake"},
    {name:"Lac de Sainte-Croix",lat:43.77,lon:6.18,type:"lake"},{name:"Lac de Serre-Ponçon",lat:44.52,lon:6.35,type:"lake"},
    {name:"Lac de Vassivière",lat:45.80,lon:1.86,type:"lake"},
@@ -605,6 +608,7 @@ const round05=v=>Math.round(v*2)/2;
 let LANG=store.get("maree-lang","fr"), COUNTRY=store.get("maree-country","FR");
 function t(k,vars){let s=(I18N[LANG]&&I18N[LANG][k])??I18N.en[k]??k;if(vars&&typeof s==="string")for(const v in vars)s=s.replace("{"+v+"}",vars[v]);return s;}
 const C=()=>COUNTRIES[COUNTRY];
+const defSpot=()=>C().spots.find(s=>s.def)||C().spots[0];
 const spName=sp=>sp?sp[LANG]:"";
 const dirName=d=>d==null?"":t("dirs")[Math.round(d/45)%8];
 const compass=d=>d==null?"":(LANG==="fr"?["N","NE","E","SE","S","SO","O","NO"]:["N","NE","E","SE","S","SW","W","NW"])[Math.round(d/45)%8];
@@ -778,11 +782,14 @@ function applyI18n(){
 function fillSpots(){
   const sp=C().spots, sel=$("#spot");
   const grp=(type,key)=>`<optgroup label="${t(key)}">`+sp.map((s,i)=>s.type===type?`<option value="${i}">${esc(s.name)}</option>`:"").join("")+`</optgroup>`;
-  let html=grp("sea","groupSea")+grp("lake","groupLake")+grp("river","groupRiver");
+  const grpR=(reg,label)=>`<optgroup label="${label}">`+sp.map((s,i)=>s.type==="lake"&&(s.region||"")===reg?`<option value="${i}">${esc(s.name)}</option>`:"").join("")+`</optgroup>`;
+  const hasReg=sp.some(s=>s.type==="lake"&&s.region);
+  const lakes=hasReg?grpR("aquitaine",t("groupLake")+" · "+t("regAquitaine"))+grpR("",t("groupLake")+" · "+t("regOther")):grp("lake","groupLake");
+  let html=grp("sea","groupSea")+lakes+grp("river","groupRiver");
   if(S.spot&&!sp.some(s=>s.name===S.spot.name))html=`<option value="custom">${esc(S.spot.name)} (${t("custom")})</option>`+html;
   sel.innerHTML=html;
   const i=S.spot?sp.findIndex(s=>s.name===S.spot.name):-1;
-  sel.value=i>=0?String(i):(S.spot?"custom":"0");
+  sel.value=i>=0?String(i):(S.spot?"custom":String(Math.max(0,sp.indexOf(defSpot()))));
   $("#wtype").innerHTML=["sea","lake","river"].map(k=>`<option value="${k}">${t(k)}</option>`).join("");
   if(S.spot&&S.spot.type!=="auto")$("#wtype").value=S.spot.type;
   if(S.spot)$("#spotBadge").innerHTML=`<span class="badge ${S.spot.type}">${t(S.spot.type)||""}</span>`;
@@ -791,7 +798,7 @@ function rerenderAll(){applyI18n();fillSpots();if(S.hours.length)renderForecast(
 
 document.querySelectorAll(".lang button").forEach(b=>b.onclick=()=>{LANG=b.dataset.lang;store.set("maree-lang",LANG);rerenderAll();});
 $("#country").onchange=e=>{COUNTRY=e.target.value;store.set("maree-country",COUNTRY);S.spot=null;fillSpots();
-  const first=C().spots[0];load({...first});rerenderAll();if(MAP.map)MAP.map.setView(C().center,C().zoom);};
+  const first=defSpot();load({...first});rerenderAll();if(MAP.map)MAP.map.setView(C().center,C().zoom);};
 document.querySelectorAll("nav.tabs button").forEach(b=>b.onclick=()=>showTab(b.dataset.tab));
 function showTab(tab){
   document.querySelectorAll("nav.tabs button").forEach(b=>b.setAttribute("aria-selected",b.dataset.tab===tab));
@@ -1084,13 +1091,13 @@ $("#exportCsv").onclick=()=>{
   const rows=c.map(x=>{const k=x.cond||{},sp=SPECIES.find(s=>s.id===x.sp);
     return[x.when,sp?spName(sp):x.other,x.len,x.wt,x.wtUnit,x.rel,x.spot,x.type,x.lat,x.lon,x.tech,x.lure,x.col,x.depth,x.line,x.notes,k.score,k.wind,k.gust,k.wdir,k.pres,k.trend&&t(k.trend),k.tide&&t(k.tide),k.flow&&t(k.flow),k.wt!=null?k.wt.toFixed(1):"",k.waves,k.cloud,k.light,k.phase!=null?t("phases")[k.phase]:""].map(q).join(",");});
   const blob=new Blob(["\ufeff"+cols.join(",")+"\n"+rows.join("\n")],{type:"text/csv"});
-  const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="maree-catches.csv";document.body.appendChild(a);a.click();a.remove();};
+  const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="que-pican-prises.csv";document.body.appendChild(a);a.click();a.remove();};
 
 /* ================= START ================= */
 (function start(){
   applyI18n();
   const saved=store.get("maree-spot",null);
-  S.spot=saved&&saved.lat!=null?saved:{...C().spots[0]};
+  S.spot=saved&&saved.lat!=null?saved:{...defSpot()};
   if(S.spot.type==="auto")S.spot.type="sea";
   fillSpots();renderSpecies();renderLog();showTab("forecast");
   load({...S.spot});

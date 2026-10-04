@@ -1,4 +1,4 @@
-# Marée
+# Que Pican!
 
 Prévisions de touche pour la mer, les lacs et les rivières, en France et au Royaume-Uni.
 Application web mobile (PWA) : elle s'installe sur l'écran d'accueil d'un téléphone et s'ouvre en plein écran, comme une app.
@@ -12,18 +12,18 @@ Application web mobile (PWA) : elle s'installe sur l'écran d'accueil d'un tél�
 
 ## Mettre en ligne avec GitHub Pages
 
-1. Créez un dépôt sur GitHub (par exemple `maree`) et poussez-y le contenu de ce dossier :
+1. Créez un dépôt sur GitHub (par exemple `que-pican`) et poussez-y le contenu de ce dossier :
    ```bash
    git init
    git add .
-   git commit -m "Marée : première version"
+   git commit -m "Que Pican! : première version"
    git branch -M main
-   git remote add origin https://github.com/<votre-compte>/maree.git
+   git remote add origin https://github.com/<votre-compte>/que-pican.git
    git push -u origin main
    ```
 2. Sur GitHub : **Settings › Pages › Build and deployment › Source : GitHub Actions**.
 3. Le workflow `.github/workflows/pages.yml` publie le site à chaque push sur `main`.
-   L'adresse s'affiche dans l'onglet **Actions** : `https://<votre-compte>.github.io/maree/`.
+   L'adresse s'affiche dans l'onglet **Actions** : `https://<votre-compte>.github.io/que-pican/`.
 
 ## Installer sur le téléphone
 
