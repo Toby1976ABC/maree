@@ -1,0 +1,1103 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Marée</title>
+<meta name="description" content="Prévisions de touche pour la mer, les lacs et les rivières.">
+<meta name="theme-color" content="#06131F">
+<meta name="color-scheme" content="dark">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Marée">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,600;0,700;0,800;1,700;1,800&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<style>
+/* ===== Marée — thème « néon marin » ===== */
+:root{
+  --abyss:#06131F; --card:#0D2132; --card2:#12304A; --line:rgba(255,255,255,.09);
+  --text:#EEF6FA; --soft:#DCE8EF; --dim:#93AEC1;
+  --accent:#C8FF2E; --cyan:#3FD9FF; --pink:#FF5EA8; --amber:#FFC14D; --green:#5FE3A1; --coral:#FF6B5B;
+  /* variables utilisées par le script */
+  --bg:var(--abyss); --panel:var(--card); --ink:var(--text); --muted:var(--dim);
+  --kelp:var(--accent); --fair:#4E86A3; --slow:#24455F; --buoy:var(--amber); --tide:var(--cyan); --warn:var(--coral); --night:rgba(255,255,255,.035);
+  --sea:var(--cyan); --lake:var(--green); --river:var(--amber);
+  --r:22px; --navh:72px;
+  color-scheme:dark;
+}
+*,*::before,*::after{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%;background:var(--abyss)}
+body{margin:0;min-height:100dvh;background:var(--abyss);color:var(--text);font:500 15.5px/1.5 Manrope,system-ui,sans-serif;-webkit-tap-highlight-color:transparent;overscroll-behavior-y:none}
+body::before{content:"";position:fixed;top:-160px;right:-140px;width:420px;height:420px;border-radius:50%;background:radial-gradient(circle,var(--accent) 0%,transparent 68%);opacity:.16;pointer-events:none;z-index:0}
+h1,h2,h3,.big,.num,.brand{font-family:"Barlow Condensed","Arial Narrow",sans-serif}
+h2{font-size:1.6rem;margin:0 0 12px;font-weight:700;letter-spacing:.2px}
+h3{font-size:1.25rem;margin:0 0 6px;font-weight:700}
+p{margin:0 0 8px}
+.sub{color:var(--dim);font-size:.92rem}
+button,select,input,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+[hidden]{display:none!important}
+
+/* ----- En-tête ----- */
+header.top{position:sticky;top:0;z-index:1000;padding-top:env(safe-area-inset-top,0px);background:rgba(6,19,31,.86);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);border-bottom:1px solid var(--line)}
+.bar{max-width:760px;margin:0 auto;display:flex;align-items:center;gap:8px;padding:10px 16px}
+.brand{display:flex;align-items:center;gap:8px;margin-right:auto;font-size:1.85rem;font-weight:800;font-style:italic;letter-spacing:1px;line-height:1;text-transform:uppercase}
+.brand i{width:34px;height:34px;border-radius:11px;background:var(--accent);display:grid;place-items:center}
+.lang{display:flex;background:var(--card);border:1px solid var(--line);border-radius:999px;padding:3px}
+.lang button{background:none;border:0;color:var(--dim);padding:6px 11px;border-radius:999px;font-weight:800;font-size:.78rem}
+.lang button[aria-pressed="true"]{background:var(--text);color:var(--abyss)}
+#country{appearance:none;-webkit-appearance:none;background:var(--card);color:var(--text);border:1px solid var(--line);border-radius:999px;padding:8px 12px;font-weight:700;font-size:.8rem;max-width:120px}
+#country option{background:var(--card);color:var(--text)}
+
+/* ----- Navigation basse ----- */
+nav.tabs{position:fixed;z-index:1100;left:12px;right:12px;bottom:calc(12px + env(safe-area-inset-bottom,0px));max-width:560px;margin:0 auto;height:var(--navh);display:flex;gap:4px;padding:8px;background:rgba(15,38,56,.94);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);border:1px solid rgba(255,255,255,.1);border-radius:26px;box-shadow:0 18px 40px rgba(0,0,0,.55)}
+nav.tabs button{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;background:none;border:0;border-radius:19px;color:var(--dim);font-size:.7rem;font-weight:700;transition:background .2s,color .2s}
+nav.tabs button svg{width:22px;height:22px}
+nav.tabs button[aria-selected="true"]{background:var(--accent);color:var(--abyss);font-weight:800}
+
+main{position:relative;z-index:1;max-width:760px;margin:0 auto;padding:16px 16px calc(var(--navh) + 48px + env(safe-area-inset-bottom,0px))}
+section.block{margin-top:24px}
+
+/* ----- Contrôles ----- */
+.spotbar{display:flex;gap:10px;margin:8px 0 10px}
+.spotbar select{flex:1 1 auto;min-width:0;height:56px;appearance:none;-webkit-appearance:none;padding:0 40px 0 16px;border:1px solid var(--line);border-radius:18px;background:var(--card) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='18' height='18' viewBox='0 0 24 24' fill='none' stroke='%2393AEC1' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E") no-repeat right 14px center;font-weight:800;font-size:1.05rem}
+.spotbar select optgroup,.spotbar select option{background:var(--card);color:var(--text)}
+.btn{min-height:44px;padding:10px 16px;border:1px solid var(--line);border-radius:14px;background:var(--card);font-weight:800}
+.btn.primary{background:var(--accent);color:var(--abyss);border-color:var(--accent)}
+.btn.small{min-height:36px;padding:6px 12px;font-size:.85rem;border-radius:12px}
+#locate{flex:0 0 auto;height:56px;border-radius:18px;background:var(--accent);color:var(--abyss);border:0;padding:0 16px;font-size:.85rem}
+.inline{display:flex;gap:10px;align-items:center;flex-wrap:wrap;color:var(--dim);font-size:.9rem;font-weight:700}
+.inline label{display:flex;align-items:center;gap:8px}
+.inline select,.inline input{min-height:40px;padding:6px 12px;border:1px solid var(--line);border-radius:12px;background:var(--card);color:var(--text);font-weight:700}
+.badge{display:inline-block;border-radius:999px;padding:2px 11px;font-size:.78rem;font-weight:800;color:var(--abyss);vertical-align:middle}
+.badge.sea{background:var(--sea)} .badge.lake{background:var(--lake)} .badge.river{background:var(--river)}
+
+/* ----- Carte principale (meilleur moment) ----- */
+.hero{position:relative;overflow:hidden;background:var(--card);border:1px solid rgba(255,255,255,.12);border-radius:28px;padding:20px 20px 22px;margin-top:16px;font-weight:700;color:var(--soft)}
+.hero::after{content:"";position:absolute;right:-60px;top:-60px;width:220px;height:220px;border-radius:50%;background:radial-gradient(circle,var(--accent),transparent 70%);opacity:.22;pointer-events:none}
+.hero>div:first-child{font-size:.74rem;letter-spacing:1.5px;text-transform:uppercase;color:var(--dim)}
+.hero .big{font-size:3.9rem;line-height:.98;font-weight:800;font-style:italic;letter-spacing:-.5px;color:var(--text);margin:6px 0 4px}
+.hero .why{color:var(--soft);font-weight:600;margin-top:6px}
+.pill{display:inline-block;margin-top:14px;background:var(--accent);color:var(--abyss);border-radius:999px;padding:6px 14px;font-weight:800;font-size:.9rem;box-shadow:0 0 28px rgba(200,255,46,.28)}
+.days{display:flex;gap:8px;overflow-x:auto;margin:16px -16px 0;padding:0 16px 6px;scrollbar-width:none}
+.days::-webkit-scrollbar{display:none}
+.days button{flex:0 0 auto;min-width:64px;height:78px;border:1px solid var(--line);background:var(--card);border-radius:20px;padding:6px 10px;text-align:center;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.days button[aria-pressed="true"]{background:var(--text);color:var(--abyss);border-color:var(--text)}
+.days .d{display:block;font-size:.72rem;font-weight:700;opacity:.8;text-transform:capitalize}
+.days .s{font-family:"Barlow Condensed",sans-serif;font-size:1.7rem;font-weight:800;line-height:1.05}
+.chartwrap{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:12px 6px 6px;overflow-x:auto}
+svg.chart{display:block;width:100%;min-width:440px;height:auto}
+.legend{display:flex;gap:12px;flex-wrap:wrap;font-size:.8rem;font-weight:700;color:var(--soft);margin:10px 4px 0}
+.legend i{display:inline-block;width:11px;height:11px;border-radius:3px;margin-right:6px;vertical-align:-1px}
+
+/* ----- Cartes ----- */
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:18px 16px}
+.plan{border:1.5px solid var(--accent);box-shadow:0 0 0 4px rgba(200,255,46,.06)}
+.plan .controls{display:grid;grid-template-columns:1fr;gap:10px;margin-bottom:14px}
+.plan label,.logform label{display:flex;flex-direction:column;gap:5px;font-size:.72rem;font-weight:800;letter-spacing:.7px;text-transform:uppercase;color:var(--dim)}
+.plan input,.plan select,.logform input,.logform select,.logform textarea{min-height:46px;padding:10px 12px;border:1px solid transparent;border-radius:14px;background:var(--card2);color:var(--text);width:100%;font-weight:700;font-size:.95rem;text-transform:none;letter-spacing:0}
+.plan input:focus,.plan select:focus,.logform input:focus,.logform select:focus,.logform textarea:focus{border-color:var(--accent);outline:none}
+::-webkit-calendar-picker-indicator{filter:invert(1)}
+.result{border-top:1px solid var(--line);padding-top:14px}
+.result .head{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+.result .head h3{font-size:1.15rem;flex:1 1 180px}
+.result .head .num{font-size:3.4rem;font-weight:800;font-style:italic;line-height:.9;color:var(--accent)}
+.recs{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:14px}
+.rec{background:var(--card2);border-radius:14px;padding:10px 12px}
+.rec{grid-column:1/-1}.rec:nth-child(1),.rec:nth-child(6){grid-column:auto}
+.rec:nth-child(2){background:var(--abyss);border:1px solid rgba(200,255,46,.35)}
+.rec:nth-child(2) span{color:var(--accent)}
+.rec span{display:block;color:var(--dim);font-size:.7rem;font-weight:800;letter-spacing:.7px;text-transform:uppercase;margin-bottom:2px}
+.rec b{font-weight:700;color:var(--text)}
+.alts{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-top:14px}
+.alts button{min-height:36px;border:1px solid var(--line);background:var(--card2);border-radius:999px;padding:4px 14px;font-size:.85rem;font-weight:800}
+.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:12px}
+.grid div{background:var(--card2);border-radius:16px;padding:12px}
+.grid div span{display:block;color:var(--dim);font-size:.7rem;font-weight:800;letter-spacing:.8px;text-transform:uppercase}
+.grid div b{font-weight:800;font-size:1.02rem}
+.factors{margin-top:18px}
+.factors h3{color:var(--accent)}
+.factor{display:grid;grid-template-columns:118px 1fr 34px;align-items:center;gap:10px;font-size:.85rem;font-weight:700;margin:8px 0}
+.factor>span:last-child{text-align:right;font-family:"Barlow Condensed",sans-serif;font-weight:800;font-size:1.05rem}
+.factor .barf{height:10px;background:#1A3449;border-radius:999px;overflow:hidden}
+.factor .barf i{display:block;height:100%;border-radius:999px;background:var(--accent)}
+.warn{color:var(--coral);font-weight:800;margin-top:10px}
+.list{list-style:none;padding:0;margin:0}
+.list li{padding:12px 0;border-top:1px solid var(--line)}
+.list li:first-child{border-top:0}
+.list .t{font-weight:800}
+.panel{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:4px 16px}
+.msg{background:rgba(255,107,91,.1);border:1px solid rgba(255,107,91,.5);border-radius:18px;padding:16px;margin-top:14px;color:#FFD0CA;font-weight:600}
+
+/* ----- Carte (Leaflet) ----- */
+#map{height:calc(100dvh - 260px);min-height:380px;border-radius:24px;border:1px solid var(--line);margin-top:10px;background:#0A2638}
+.leaflet-container{font:inherit}
+.leaflet-bar,.leaflet-control-layers{border:0!important;border-radius:14px!important;overflow:hidden;box-shadow:0 8px 24px rgba(0,0,0,.45)!important}
+.leaflet-bar a{width:40px!important;height:40px!important;line-height:40px!important;background:var(--card)!important;color:var(--text)!important;border-bottom-color:var(--line)!important}
+.leaflet-control-layers{background:var(--card)!important;color:var(--text)}
+.leaflet-control-layers-toggle{width:44px!important;height:44px!important;background-color:var(--accent)!important;filter:none}
+.leaflet-control-layers-expanded{padding:10px 14px!important}
+.leaflet-popup-content-wrapper,.leaflet-popup-tip{background:var(--card)!important;color:var(--text)!important;box-shadow:0 12px 30px rgba(0,0,0,.5)!important}
+.leaflet-popup-content-wrapper{border-radius:18px!important}
+.leaflet-container a.leaflet-popup-close-button{color:var(--dim)}
+.leaflet-control-attribution{background:rgba(6,19,31,.7)!important;color:var(--dim)!important}
+.leaflet-control-attribution a{color:var(--soft)!important}
+.windmark{font:700 11px Manrope,sans-serif;color:#06131F;text-align:center;text-shadow:0 0 3px #fff}
+.popup p{margin:0 0 6px}
+.popup select{margin:6px 0 10px;padding:8px;border-radius:10px;background:var(--card2);color:var(--text);border:1px solid var(--line)}
+
+/* ----- Espèces ----- */
+.filter{display:flex;gap:8px;overflow-x:auto;margin:0 -16px 14px;padding:0 16px 4px;scrollbar-width:none}
+.filter::-webkit-scrollbar{display:none}
+.filter button{flex:0 0 auto;min-height:42px;border:1px solid var(--line);background:var(--card);border-radius:999px;padding:0 18px;font-weight:800;font-size:.88rem}
+.filter button[aria-pressed="true"]{background:var(--text);color:var(--abyss);border-color:var(--text)}
+.sp{background:var(--card);border:1px solid var(--line);border-radius:24px;padding:18px 16px;margin-bottom:12px}
+.sp h3{font-size:1.75rem;font-weight:800;line-height:1.1;display:flex;flex-wrap:wrap;align-items:center;gap:6px}
+.sp h3 .pill{margin:0!important;padding:2px 11px;font-family:Manrope,sans-serif;font-size:.76rem;box-shadow:none}
+.sp dl{display:grid;grid-template-columns:1fr;gap:2px;margin:12px 0 0;font-size:.92rem}
+.sp dt{color:var(--dim);font-size:.7rem;font-weight:800;letter-spacing:.8px;text-transform:uppercase;margin-top:8px}
+.sp dd{margin:0;font-weight:600;color:var(--soft)}
+.note{font-size:.86rem;font-weight:700;color:#FFB3A9;background:rgba(255,107,91,.1);border:1px solid rgba(255,107,91,.4);border-radius:14px;padding:10px 12px;margin-top:12px}
+
+/* ----- Carnet ----- */
+.logform{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.logform .full{grid-column:1/-1}
+.logform .check{flex-direction:row;align-items:center;justify-content:space-between;min-height:52px;background:var(--card2);border-radius:14px;padding:0 14px;color:var(--text);font-size:.95rem;letter-spacing:0;text-transform:none}
+.logform .check input{order:2;appearance:none;-webkit-appearance:none;width:50px;min-height:0;height:30px;padding:0;border-radius:999px;background:#2A4558;position:relative;transition:background .2s;flex:none}
+.logform .check input::after{content:"";position:absolute;top:3px;left:3px;width:24px;height:24px;border-radius:50%;background:#fff;transition:transform .2s}
+.logform .check input:checked{background:var(--accent)}
+.logform .check input:checked::after{transform:translateX(20px)}
+.logform button[type=submit]{min-height:56px;font-family:"Barlow Condensed",sans-serif;font-style:italic;font-size:1.45rem;border-radius:18px}
+.toolbar{display:flex;gap:8px;justify-content:space-between;align-items:center;margin:20px 0 10px;flex-wrap:wrap}
+#logList li .btn.small{margin-top:8px}
+footer{margin-top:32px;color:var(--dim);font-size:.78rem;line-height:1.55}
+
+/* Titres de page plus présents */
+#page-species>h2,#page-log>h2{font-size:2.5rem;font-weight:800;font-style:italic;line-height:1;margin:6px 0 10px}
+
+@media (max-width:340px){.plan .controls,.logform{grid-template-columns:1fr}}@media (max-width:420px){.hero .big{font-size:3.3rem}.brand{font-size:1.6rem}}
+@media (min-width:768px){nav.tabs{bottom:20px}}
+@media (prefers-reduced-motion:no-preference){
+  .hero{animation:rise .5s cubic-bezier(.2,.8,.2,1)}
+  .page:not([hidden]){animation:fade .3s ease-out}
+  @keyframes rise{from{opacity:0;transform:translateY(10px) scale(.98)}to{opacity:1;transform:none}}
+  @keyframes fade{from{opacity:0}to{opacity:1}}
+}
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="bar">
+    <div class="brand"><i aria-hidden="true"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#06131F" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M2 15c2.5 0 2.5-2 5-2s2.5 2 5 2 2.5-2 5-2 2.5 2 5 2"/><path d="M2 20c2.5 0 2.5-2 5-2s2.5 2 5 2 2.5-2 5-2 2.5 2 5 2"/><path d="M12 3v7"/><path d="M9 7l3 3 3-3"/></svg></i>Marée</div>
+    <div class="lang" role="group" aria-label="Language / Langue">
+      <button type="button" data-lang="fr">FR</button>
+      <button type="button" data-lang="en">EN</button>
+    </div>
+    <select id="country" aria-label="Country / Pays"></select>
+  </div>
+</header>
+<nav class="tabs" role="tablist" aria-label="Navigation">
+  <button type="button" role="tab" data-tab="forecast"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 16a9 9 0 0 1 18 0"/><path d="M12 16l4-5"/></svg><span data-t="tabForecast"></span></button>
+  <button type="button" role="tab" data-tab="map"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 4L3 6v14l6-2 6 2 6-2V4l-6 2-6-2z"/><path d="M9 4v14M15 6v14"/></svg><span data-t="tabMap"></span></button>
+  <button type="button" role="tab" data-tab="species"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12c3-5 9-6 14-2l5-3v10l-5-3c-5 4-11 3-14-2z"/><circle cx="7" cy="11" r=".8"/></svg><span data-t="tabSpecies"></span></button>
+  <button type="button" role="tab" data-tab="log"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 4h11a3 3 0 0 1 3 3v13H8a3 3 0 0 1-3-3z"/><path d="M5 17a3 3 0 0 1 3-3h11"/></svg><span data-t="tabLog"></span></button>
+</nav>
+<main>
+  <!-- FORECAST -->
+  <div id="page-forecast" class="page">
+    <p class="sub" data-t="tagline"></p>
+    <div class="spotbar">
+      <select id="spot" aria-label="Spot"></select>
+      <button class="btn" id="locate" type="button" data-t="useLocation"></button>
+    </div>
+    <div class="inline">
+      <span id="spotBadge"></span>
+      <label><span data-t="waterType"></span> <select id="wtype"></select></label>
+    </div>
+    <div id="status" class="sub" style="margin-top:10px"></div>
+
+    <div id="fc" hidden>
+      <div class="hero" id="hero"></div>
+      <div class="days" id="days" role="group"></div>
+
+      <section class="block">
+        <h2 data-t="hourByHour"></h2>
+        <div class="chartwrap"><svg class="chart" id="chart" viewBox="0 0 480 200" role="img"></svg></div>
+        <div class="legend" id="legend"></div>
+        <p class="sub" style="margin-top:6px" data-t="tapBar"></p>
+      </section>
+
+      <section class="block">
+        <div class="card plan">
+          <h2 data-t="planTitle"></h2>
+          <div class="controls">
+            <label><span data-t="planWhen"></span><input type="datetime-local" id="planWhen" step="3600"></label>
+            <label><span data-t="planSpecies"></span><select id="planSpecies"></select></label>
+          </div>
+          <div class="result" id="planResult"></div>
+        </div>
+      </section>
+
+      <section class="block"><div class="card" id="detail"></div></section>
+
+      <section class="block">
+        <h2 data-t="almanac"></h2>
+        <div class="panel"><ul class="list" id="almanacList"></ul></div>
+      </section>
+    </div>
+  </div>
+
+  <!-- MAP -->
+  <div id="page-map" class="page" hidden>
+    <p class="sub" data-t="mapHint"></p>
+    <div id="map"></div>
+    <section class="block card" id="suggest"></section>
+    <p class="sub" style="margin-top:10px" data-t="layerNote"></p>
+  </div>
+
+  <!-- SPECIES -->
+  <div id="page-species" class="page" hidden>
+    <h2 data-t="speciesTitle"></h2>
+    <div class="filter" id="spFilter"></div>
+    <div id="spList"></div>
+  </div>
+
+  <!-- LOG -->
+  <div id="page-log" class="page" hidden>
+    <h2 data-t="logTitle"></h2>
+    <p class="sub" data-t="condNote"></p>
+    <form class="logform card" id="logForm">
+      <label><span data-t="lSpecies"></span><select id="lSpecies"></select></label>
+      <label id="lOtherWrap" hidden><span data-t="other"></span><input id="lOther"></label>
+      <label><span data-t="lWhen"></span><input type="datetime-local" id="lWhen" required></label>
+      <label><span data-t="lLen"></span><input id="lLen" type="number" inputmode="decimal" min="0" step="0.5"></label>
+      <label><span id="lWtLabel"></span><input id="lWt" type="number" inputmode="decimal" min="0" step="0.01"></label>
+      <label><span data-t="lTech"></span><input id="lTech" list="techList"></label>
+      <label><span data-t="lLure"></span><input id="lLure" list="lureList"></label>
+      <label><span data-t="lCol"></span><input id="lCol"></label>
+      <label><span data-t="lDepth"></span><input id="lDepth" type="number" inputmode="decimal" min="0" step="0.5"></label>
+      <label class="full"><span data-t="lLine"></span><input id="lLine" data-tp="lLinePh"></label>
+      <label class="full"><span data-t="lNotes"></span><textarea id="lNotes" rows="2"></textarea></label>
+      <label class="check full"><input type="checkbox" id="lRel" checked><span data-t="lRel"></span></label>
+      <button class="btn primary full" type="submit" data-t="save"></button>
+      <p class="sub full" id="logMsg" role="status"></p>
+    </form>
+    <datalist id="techList"></datalist><datalist id="lureList"></datalist>
+    <section class="block" id="insights"></section>
+    <div class="toolbar"><h2 style="margin:0" data-t="yourCatches"></h2><button class="btn small" id="exportCsv" type="button" data-t="exportCsv"></button></div>
+    <div class="panel"><ul class="list" id="logList"></ul></div>
+  </div>
+
+  <footer data-t="footer"></footer>
+</main>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script>
+/* ================= TRANSLATIONS ================= */
+const I18N = {
+en:{
+ tabForecast:"Forecast",tabMap:"Map",tabSpecies:"Species",tabLog:"Log",
+ tagline:"Bite forecasts for the sea, lakes and rivers.",
+ useLocation:"Use my location",locating:"Locating…",waterType:"Water type",
+ groupSea:"Sea and coast",groupLake:"Lakes",groupRiver:"Rivers",custom:"Custom spot",
+ sea:"Sea",lake:"Lake",river:"River",auto:"Detect automatically",
+ loading:"Loading forecast for {spot}…",
+ loadError:"The forecast didn't load. Check that you're online and that the page is open in a normal web browser, then tap Retry.",
+ retry:"Retry",locError:"Location access was blocked. Allow location for this page, or pick a spot from the list.",
+ bestTime:"Best time at {spot} {day}",today:"today",biteScore:"Bite score",bestFor:"Best bet: {sp}",
+ stayAshore:"Stay ashore",unsafeDay:"Wind or waves are above safe limits all day.",
+ hourByHour:"Hour by hour",tapBar:"Tap a bar to plan your session for that hour.",
+ good:"Good",fair:"Fair",slow:"Slow",unsafe:"Unsafe",legendTide:"Tide",legendSol:"Solunar period",
+ planTitle:"Plan your session",planWhen:"When will you fish?",planSpecies:"Target species",anySpecies:"Best for the conditions",
+ scoreAt:"Bite score for {sp} at {time}",betterTime:"Better time that day",bestWeek:"Best time this week",
+ outOfRange:"Pick a time within the 7-day forecast.",noSpecies:"No species in season for this water type.",
+ depth:"Depth",technique:"Technique",lures:"Lures and baits",where:"Where to fish",colour:"Lure colour",speed:"Retrieve",
+ alsoTry:"Also good now:",outSeason:"Out of season or in closed season here. Check local rules before fishing for it.",
+ conditions:"Conditions at {time}",
+ wind:"Wind",gusts:"Gusts",pressure:"Pressure",tide:"Tide",waves:"Waves",water:"Water",air:"Air",moon:"Moon",flow:"River flow",
+ tRising:"Rising",tFalling:"Falling",tSlack:"Slack",pFalling:"falling",pRising:"rising",pSteady:"steady",
+ noData:"No data",smallRange:"Very small range",est:"est.",
+ flowNormal:"Normal",flowHigh:"High, coloured",flowFlood:"Flood",flowLow:"Low",flowDropping:"Dropping and clearing",
+ unsafeWarn:"Strong gusts or big waves: not safe for small boats, exposed rocks or high banks.",
+ fPressure:"Pressure",fSolunar:"Solunar",fTide:"Tide flow",fLight:"Light",fWind:"Wind",fMoon:"Moon phase",fWater:"Water temp",fFlow:"River flow",
+ almanac:"Moon, sun and tides",Sunrise:"Sunrise",Sunset:"Sunset",Moonrise:"Moonrise",Moonset:"Moonset",
+ "Moon overhead":"Moon overhead","Moon underfoot":"Moon underfoot",highTide:"High tide",lowTide:"Low tide",
+ majorP:"Major period, about 2 hours around this time",minorP:"Minor period, about 1 hour around this time",
+ bestLight:"Best light within an hour either side",approx:"approximate",lit:"lit",
+ phaseNote:"New and full moons bring the strongest tides and often more active fish.",
+ phases:["New moon","Waxing crescent","First quarter","Waxing gibbous","Full moon","Waning gibbous","Last quarter","Waning crescent"],
+ dirs:["north","north-east","east","south-east","south","south-west","west","north-west"],
+ mapHint:"Tap anywhere on the map to get a forecast there. Use the layer button (top right) to switch layers.",
+ forecastHere:"Forecast here",tapType:"Water type",suggested:"Suggested layers for {spot}",showSuggested:"Show suggested layers",
+ sugSea:"Sea depth and sea marks show drop-offs, reefs and channels. Sea temperature and chlorophyll show where baitfish gather.",
+ sugLake:"Satellite shows weed beds, bays and points. Live wind shows which bank the wind is pushing food toward.",
+ sugRiver:"Satellite shows bends, weirs and slacks. Live wind helps you pick a sheltered stretch.",
+ lMap:"Map",lSat:"Satellite",lSeamarks:"Sea marks and buoys",lDepthLayer:"Sea depth",lSST:"Sea temperature",lChl:"Chlorophyll (fish food)",lWind:"Live wind",lSpots:"Spots",
+ layerNote:"Sea temperature and chlorophyll come from satellites: they have gaps where it was cloudy and are coarse when zoomed in. Sea depth covers European seas.",
+ speciesTitle:"Species, techniques and depths",all:"All",
+ season:"Season",bestTod:"Best time",idealTemp:"Ideal water",depthGuide:"Depth by water temp",
+ cold:"cold",mild:"mild",warm:"warm",inSeason:"In season now",
+ dd:"Dawn and dusk",night:"Night",day:"Daytime",
+ months:["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"],
+ logTitle:"Catch log",condNote:"Wind, pressure, tide, water temperature, moon and bite score are added from the forecast for your selected spot and time.",
+ lSpecies:"Species",other:"Other species",lWhen:"Date and time",lLen:"Length (cm)",lWtKg:"Weight (kg)",lWtLb:"Weight (lb)",
+ lTech:"Technique",lLure:"Lure or bait",lCol:"Colour",lDepth:"Depth (m)",lLine:"Line, leader and rod",lLinePh:"e.g. 0.12 mm braid, 0.30 mm fluoro leader, 2.4 m rod",
+ lNotes:"Notes",lRel:"Released",save:"Save catch",saved:"Catch saved.",savedNoCond:"Catch saved. Conditions weren't added because the time is outside the loaded forecast.",
+ yourCatches:"Your catches",exportCsv:"Export CSV",del:"Delete",released:"released",kept:"kept",
+ emptyLog:"No catches yet. Every catch you log, with its conditions, shows you what works at your waters.",
+ insights:"What's working for you",insightLine:"{n} of {t} catches: {x}",
+ lightDay:"daylight",lightTw:"dawn or dusk",lightNight:"darkness",
+ footer:"Data: Open-Meteo (weather, marine, river flow), OpenStreetMap, OpenSeaMap, EMODnet Bathymetry, NASA GIBS, Esri. Tide heights and lake or river water temperatures are estimates: use official tide tables for navigation. Always check permits, minimum sizes and closed seasons.",
+ pSeaRising:"Rising tide: fish the flooding edges, gullies and rocks close in as fish move up with the water.",
+ pSeaFalling:"Falling tide: target channel mouths, drop-offs and points where bait is flushed out.",
+ pSeaSlack:"Slack water: bites usually ease off. Use bottom baits or move to a spot with current.",
+ pSeaSurf:"The waves create surf and white water close in, where bass hunt.",
+ pSeaCalmBright:"Flat calm and bright: fish deeper water or wait for low light.",
+ pSeaNoTide:"Tides are tiny here: focus on structure, depth changes and low light.",
+ pLakeWind:"Wind from the {from}: fish the {bank} bank, where the wind pushes food and oxygen.",
+ pLakeCold:"Cold water: fish are deep and slow. Target the deepest areas and sheltered bays.",
+ pLakeWarm:"Warm water: fish shade, weed beds and drop-offs by day, the shallows at dawn and dusk.",
+ pLakeLow:"Low light: fish move into the margins and shallows.",
+ pRiverHigh:"High, coloured water: fish slacks, eddies and inside bends out of the main current.",
+ pRiverNormal:"Fish the creases between fast and slow water, behind obstacles and below weirs.",
+ pRiverLowWarm:"Low, warm water: fish oxygenated runs, riffles and weir pools.",
+ pRiverDropping:"Dropping and clearing after high water: often a very good time.",
+ cBright:"Natural colours (silver, green, brown): the water is clear and bright.",
+ cDull:"Dark or fluorescent colours with vibration or rattle: low light or coloured water.",
+ sCold:"Slow and close to the bottom: fish are cold and sluggish.",sMild:"Medium speed with pauses.",sWarm:"Faster, more erratic retrieves: fish are active."
+},
+fr:{
+ tabForecast:"Prévisions",tabMap:"Carte",tabSpecies:"Espèces",tabLog:"Carnet",
+ tagline:"Prévisions de touche pour la mer, les lacs et les rivières.",
+ useLocation:"Ma position",locating:"Localisation…",waterType:"Type d'eau",
+ groupSea:"Mer et littoral",groupLake:"Lacs",groupRiver:"Rivières",custom:"Spot personnalisé",
+ sea:"Mer",lake:"Lac",river:"Rivière",auto:"Détection automatique",
+ loading:"Chargement des prévisions pour {spot}…",
+ loadError:"Les prévisions n'ont pas pu être chargées. Vérifiez votre connexion et ouvrez la page dans un navigateur classique, puis touchez Réessayer.",
+ retry:"Réessayer",locError:"L'accès à la position est bloqué. Autorisez-le pour cette page ou choisissez un spot dans la liste.",
+ bestTime:"Meilleur moment à {spot} {day}",today:"aujourd'hui",biteScore:"Indice de touche",bestFor:"Meilleure cible : {sp}",
+ stayAshore:"Restez à terre",unsafeDay:"Vent ou vagues au-dessus des seuils de sécurité toute la journée.",
+ hourByHour:"Heure par heure",tapBar:"Touchez une barre pour préparer votre sortie à cette heure.",
+ good:"Bon",fair:"Moyen",slow:"Faible",unsafe:"Dangereux",legendTide:"Marée",legendSol:"Période solunaire",
+ planTitle:"Préparez votre sortie",planWhen:"Quand pêcherez-vous ?",planSpecies:"Espèce visée",anySpecies:"La plus adaptée aux conditions",
+ scoreAt:"Indice pour {sp} à {time}",betterTime:"Meilleur créneau ce jour-là",bestWeek:"Meilleur créneau de la semaine",
+ outOfRange:"Choisissez un horaire dans les 7 jours de prévision.",noSpecies:"Aucune espèce de saison pour ce type d'eau.",
+ depth:"Profondeur",technique:"Technique",lures:"Leurres et appâts",where:"Où pêcher",colour:"Couleur du leurre",speed:"Animation",
+ alsoTry:"Aussi intéressant maintenant :",outSeason:"Hors saison ou en période de fermeture ici. Vérifiez la réglementation locale avant de la pêcher.",
+ conditions:"Conditions à {time}",
+ wind:"Vent",gusts:"Rafales",pressure:"Pression",tide:"Marée",waves:"Vagues",water:"Eau",air:"Air",moon:"Lune",flow:"Débit",
+ tRising:"Montante",tFalling:"Descendante",tSlack:"Étale",pFalling:"en baisse",pRising:"en hausse",pSteady:"stable",
+ noData:"Pas de données",smallRange:"Très faible marnage",est:"estim.",
+ flowNormal:"Normal",flowHigh:"Haut, eau teintée",flowFlood:"Crue",flowLow:"Bas",flowDropping:"En décrue, l'eau s'éclaircit",
+ unsafeWarn:"Fortes rafales ou grosses vagues : dangereux en petit bateau, sur les rochers exposés ou les berges hautes.",
+ fPressure:"Pression",fSolunar:"Solunaire",fTide:"Courant de marée",fLight:"Luminosité",fWind:"Vent",fMoon:"Phase de lune",fWater:"Temp. de l'eau",fFlow:"Débit",
+ almanac:"Lune, soleil et marées",Sunrise:"Lever du soleil",Sunset:"Coucher du soleil",Moonrise:"Lever de lune",Moonset:"Coucher de lune",
+ "Moon overhead":"Lune au zénith","Moon underfoot":"Lune au nadir",highTide:"Pleine mer",lowTide:"Basse mer",
+ majorP:"Période majeure, environ 2 h autour de cet horaire",minorP:"Période mineure, environ 1 h autour de cet horaire",
+ bestLight:"Meilleure lumière une heure avant et après",approx:"approximatif",lit:"éclairée",
+ phaseNote:"Nouvelle et pleine lune donnent les plus forts coefficients et souvent des poissons plus actifs.",
+ phases:["Nouvelle lune","Premier croissant","Premier quartier","Gibbeuse croissante","Pleine lune","Gibbeuse décroissante","Dernier quartier","Dernier croissant"],
+ dirs:["nord","nord-est","est","sud-est","sud","sud-ouest","ouest","nord-ouest"],
+ mapHint:"Touchez la carte pour obtenir les prévisions de ce point. Le bouton des couches (en haut à droite) permet d'en changer.",
+ forecastHere:"Prévisions ici",tapType:"Type d'eau",suggested:"Couches suggérées pour {spot}",showSuggested:"Afficher les couches suggérées",
+ sugSea:"La profondeur et le balisage montrent tombants, roches et chenaux. La température et la chlorophylle montrent où se tient le poisson fourrage.",
+ sugLake:"Le satellite montre herbiers, baies et pointes. Le vent en direct indique la berge vers laquelle la nourriture est poussée.",
+ sugRiver:"Le satellite montre courbes, barrages et zones calmes. Le vent en direct aide à choisir un secteur abrité.",
+ lMap:"Plan",lSat:"Satellite",lSeamarks:"Balisage et bouées",lDepthLayer:"Profondeur marine",lSST:"Température de la mer",lChl:"Chlorophylle (nourriture)",lWind:"Vent en direct",lSpots:"Spots",
+ layerNote:"La température et la chlorophylle proviennent de satellites : elles présentent des trous par temps nuageux et sont grossières en zoom rapproché. La profondeur couvre les mers européennes.",
+ speciesTitle:"Espèces, techniques et profondeurs",all:"Toutes",
+ season:"Saison",bestTod:"Meilleur moment",idealTemp:"Eau idéale",depthGuide:"Profondeur selon la température",
+ cold:"froide",mild:"douce",warm:"chaude",inSeason:"De saison",
+ dd:"Aube et crépuscule",night:"Nuit",day:"Journée",
+ months:["janv.","févr.","mars","avr.","mai","juin","juil.","août","sept.","oct.","nov.","déc."],
+ logTitle:"Carnet de prises",condNote:"Vent, pression, marée, température de l'eau, lune et indice de touche sont ajoutés depuis les prévisions du spot et de l'heure choisis.",
+ lSpecies:"Espèce",other:"Autre espèce",lWhen:"Date et heure",lLen:"Taille (cm)",lWtKg:"Poids (kg)",lWtLb:"Poids (lb)",
+ lTech:"Technique",lLure:"Leurre ou appât",lCol:"Couleur",lDepth:"Profondeur (m)",lLine:"Fil, bas de ligne et canne",lLinePh:"ex. tresse 0,12 mm, fluoro 0,30 mm, canne 2,40 m",
+ lNotes:"Notes",lRel:"Relâché",save:"Enregistrer la prise",saved:"Prise enregistrée.",savedNoCond:"Prise enregistrée. Les conditions n'ont pas été ajoutées car l'heure est hors des prévisions chargées.",
+ yourCatches:"Vos prises",exportCsv:"Exporter en CSV",del:"Supprimer",released:"relâché",kept:"gardé",
+ emptyLog:"Aucune prise pour l'instant. Chaque prise notée avec ses conditions vous montre ce qui marche sur vos eaux.",
+ insights:"Ce qui marche pour vous",insightLine:"{n} prises sur {t} : {x}",
+ lightDay:"en plein jour",lightTw:"à l'aube ou au crépuscule",lightNight:"de nuit",
+ footer:"Données : Open-Meteo (météo, mer, débits), OpenStreetMap, OpenSeaMap, EMODnet Bathymetry, NASA GIBS, Esri. Les hauteurs de marée et les températures des lacs et rivières sont des estimations : utilisez les annuaires officiels (SHOM) pour naviguer. Vérifiez toujours permis, tailles minimales et périodes de fermeture.",
+ pSeaRising:"Marée montante : pêchez les bordures qui se couvrent, les rigoles et les roches près du bord, le poisson monte avec l'eau.",
+ pSeaFalling:"Marée descendante : visez les sorties de chenaux, les tombants et les pointes où le fourrage est chassé.",
+ pSeaSlack:"Étale : les touches ralentissent souvent. Pêchez au fond ou changez pour un spot avec du courant.",
+ pSeaSurf:"Les vagues forment de l'écume près du bord, où le bar chasse.",
+ pSeaCalmBright:"Mer plate et lumineuse : pêchez plus profond ou attendez une lumière plus faible.",
+ pSeaNoTide:"Marées très faibles ici : misez sur les structures, les cassures et la faible luminosité.",
+ pLakeWind:"Vent du {from} : pêchez la berge {bank}, où le vent pousse nourriture et oxygène.",
+ pLakeCold:"Eau froide : le poisson est profond et lent. Visez les zones les plus profondes et les baies abritées.",
+ pLakeWarm:"Eau chaude : de jour l'ombre, les herbiers et les tombants ; à l'aube et au crépuscule, les bordures.",
+ pLakeLow:"Faible luminosité : le poisson vient sur les bordures et les hauts-fonds.",
+ pRiverHigh:"Eau haute et teintée : pêchez les contre-courants, les remous et l'intérieur des courbes.",
+ pRiverNormal:"Pêchez les veines entre courant et eau calme, derrière les obstacles et sous les barrages.",
+ pRiverLowWarm:"Eau basse et chaude : pêchez les courants oxygénés, les radiers et les fosses sous barrage.",
+ pRiverDropping:"Décrue après une montée des eaux : souvent un excellent moment.",
+ cBright:"Couleurs naturelles (argent, vert, brun) : l'eau est claire et lumineuse.",
+ cDull:"Couleurs sombres ou fluo, avec vibrations ou billes : faible lumière ou eau teintée.",
+ sCold:"Lente et près du fond : le poisson a froid et est peu actif.",sMild:"Vitesse moyenne avec des pauses.",sWarm:"Plus rapide et saccadée : le poisson est actif."
+}};
+
+/* ================= COUNTRIES AND SPOTS ================= */
+const COUNTRIES = {
+ FR:{label:{en:"France",fr:"France"},center:[46.6,2.4],zoom:5,windUnit:"kmh",wtUnit:"kg",locale:"fr-FR",
+  spots:[
+   {name:"Dunkerque",lat:51.06,lon:2.35,type:"sea"},{name:"Cherbourg",lat:49.66,lon:-1.62,type:"sea"},
+   {name:"Saint-Malo",lat:48.66,lon:-2.03,type:"sea"},{name:"Brest",lat:48.33,lon:-4.62,type:"sea"},
+   {name:"Quiberon",lat:47.48,lon:-3.12,type:"sea"},{name:"Île de Ré",lat:46.17,lon:-1.42,type:"sea"},
+   {name:"Arcachon / Cap Ferret",lat:44.62,lon:-1.27,type:"sea"},{name:"Biarritz",lat:43.49,lon:-1.58,type:"sea"},
+   {name:"Marseille",lat:43.27,lon:5.30,type:"sea"},{name:"Nice",lat:43.68,lon:7.27,type:"sea"},
+   {name:"Lac du Der",lat:48.58,lon:4.74,type:"lake"},{name:"Lac d'Annecy",lat:45.86,lon:6.17,type:"lake"},
+   {name:"Lac de Sainte-Croix",lat:43.77,lon:6.18,type:"lake"},{name:"Lac de Serre-Ponçon",lat:44.52,lon:6.35,type:"lake"},
+   {name:"Lac de Vassivière",lat:45.80,lon:1.86,type:"lake"},
+   {name:"Loire, Orléans",lat:47.895,lon:1.91,type:"river"},{name:"Seine, Melun",lat:48.54,lon:2.66,type:"river"},
+   {name:"Saône, Mâcon",lat:46.31,lon:4.84,type:"river"},{name:"Dordogne, Bergerac",lat:44.85,lon:0.48,type:"river"},
+   {name:"Lot, Cahors",lat:44.45,lon:1.44,type:"river"}
+  ]},
+ UK:{label:{en:"United Kingdom",fr:"Royaume-Uni"},center:[54.3,-2.5],zoom:5,windUnit:"mph",wtUnit:"lb",locale:"en-GB",
+  spots:[
+   {name:"Brighton",lat:50.81,lon:-0.14,type:"sea"},{name:"Chesil Beach",lat:50.62,lon:-2.56,type:"sea"},
+   {name:"Falmouth",lat:50.15,lon:-5.05,type:"sea"},{name:"Walton-on-the-Naze",lat:51.85,lon:1.28,type:"sea"},
+   {name:"Holyhead, Anglesey",lat:53.31,lon:-4.63,type:"sea"},{name:"Whitby",lat:54.49,lon:-0.61,type:"sea"},
+   {name:"Oban",lat:56.41,lon:-5.47,type:"sea"},
+   {name:"Rutland Water",lat:52.65,lon:-0.65,type:"lake"},{name:"Grafham Water",lat:52.29,lon:-0.32,type:"lake"},
+   {name:"Chew Valley Lake",lat:51.34,lon:-2.62,type:"lake"},{name:"Hickling Broad",lat:52.74,lon:1.58,type:"lake"},
+   {name:"Loch Lomond",lat:56.08,lon:-4.58,type:"lake"},
+   {name:"River Thames, Oxford",lat:51.75,lon:-1.25,type:"river"},{name:"River Trent, Newark",lat:53.08,lon:-0.81,type:"river"},
+   {name:"River Wye, Hay-on-Wye",lat:52.07,lon:-3.12,type:"river"},{name:"River Severn, Worcester",lat:52.19,lon:-2.22,type:"river"}
+  ]}
+};
+
+/* ================= SPECIES KNOWLEDGE BASE =================
+   w: water types; m: months active or open; t: ideal water temp °C;
+   d: depth range in metres for cold (<10 °C), mild (10–17 °C), warm (>17 °C) water;
+   tod: dd = dawn and dusk, night, day; c: countries (default both); note: country-specific rules */
+const SPECIES = [
+ {id:"bass",en:"Sea bass",fr:"Bar (loup)",w:["sea"],m:[4,5,6,7,8,9,10,11],t:[12,20],d:{c:[3,10],m:[0.5,4],w:[0.5,3]},tod:"dd",
+  tech:{en:"Lure fishing from rocks and beaches; float or ledger with live bait",fr:"Pêche aux leurres depuis les rochers et plages ; flotteur ou posé au vif"},
+  bait:{en:"Soft plastics, surface poppers and stickbaits, sandeel, peeler crab",fr:"Leurres souples, poppers et stickbaits, lançon, crabe mou"},
+  note:{FR:{en:"Minimum size and bag limits apply; check current rules for your coast.",fr:"Taille minimale et quotas en vigueur ; vérifiez les règles de votre façade."},UK:{en:"Catch and retain limits change yearly; check current MMO rules.",fr:"Les limites de capture changent chaque année ; vérifiez les règles MMO."}}},
+ {id:"gilthead",en:"Gilthead bream",fr:"Dorade royale",w:["sea"],m:[5,6,7,8,9,10],t:[15,24],d:{c:[5,15],m:[2,8],w:[1,6]},tod:"day",
+  tech:{en:"Ledgering on the bottom near mussel and oyster beds",fr:"Pêche au posé près des parcs à moules et à huîtres"},
+  bait:{en:"Crab, mussel, shrimp, razor clam",fr:"Crabe, moule, crevette, couteau"}},
+ {id:"pollack",en:"Pollack",fr:"Lieu jaune",w:["sea"],m:[3,4,5,6,7,8,9,10,11],t:[8,16],d:{c:[10,30],m:[5,20],w:[3,15]},tod:"dd",
+  tech:{en:"Weighted soft lures over reefs and wrecks, slow retrieve",fr:"Leurres souples plombés sur roches et épaves, ramenée lente"},
+  bait:{en:"Shads, jelly worms, metal jigs",fr:"Shads, finettes, jigs métalliques"}},
+ {id:"mackerel",en:"Mackerel",fr:"Maquereau",w:["sea"],m:[5,6,7,8,9,10],t:[11,20],d:{c:[0,10],m:[0,10],w:[0,8]},tod:"day",
+  tech:{en:"Feather rigs or spinning from piers and boats",fr:"Trains de plumes ou lancer depuis jetées et bateaux"},
+  bait:{en:"Feathers, sabiki rigs, small spoons and metals",fr:"Plumes, sabikis, petites cuillers et leurres métalliques"}},
+ {id:"blackbream",en:"Black bream",fr:"Griset (dorade grise)",w:["sea"],m:[4,5,6,7,8,9],t:[12,20],d:{c:[8,25],m:[5,20],w:[5,20]},tod:"day",
+  tech:{en:"Bottom fishing over rough ground with light gear",fr:"Pêche au fond sur zones rocheuses en matériel léger"},
+  bait:{en:"Ragworm, squid strips, small hooks",fr:"Néréis, lanières d'encornet, petits hameçons"}},
+ {id:"sole",en:"Sole",fr:"Sole",w:["sea"],m:[6,7,8,9,10],t:[10,20],d:{c:[2,6],m:[1,5],w:[1,5]},tod:"night",
+  tech:{en:"Surf ledgering on sandy beaches on a rising tide",fr:"Surfcasting sur plages de sable à marée montante"},
+  bait:{en:"Ragworm, lugworm, small hooks",fr:"Néréis, arénicole, petits hameçons"}},
+ {id:"cuttle",en:"Cuttlefish",fr:"Seiche",w:["sea"],m:[3,4,5,6],t:[12,20],d:{c:[3,10],m:[2,8],w:[2,8]},tod:"day",
+  tech:{en:"Squid jigs worked slowly near the bottom",fr:"Turluttes animées lentement près du fond"},
+  bait:{en:"Egi jigs, turluttes, fish strips",fr:"Turluttes, egis, lanières de poisson"}},
+ {id:"squid",en:"Squid",fr:"Calamar, encornet",w:["sea"],m:[1,2,10,11,12],t:[10,18],d:{c:[2,15],m:[2,12],w:[3,15]},tod:"night",
+  tech:{en:"Eging at night under harbour lights",fr:"Eging de nuit sous les lumières des ports"},
+  bait:{en:"Small egi jigs, glow colours",fr:"Petites turluttes, couleurs phosphorescentes"}},
+ {id:"garfish",en:"Garfish",fr:"Orphie",w:["sea"],m:[4,5,6,7,8,9],t:[13,22],d:{c:[0,2],m:[0,2],w:[0,2]},tod:"day",
+  tech:{en:"Float fishing near the surface in calm water",fr:"Pêche au flotteur près de la surface en eau calme"},
+  bait:{en:"Fish strips, small spinners",fr:"Lanières de poisson, petites cuillers"}},
+ {id:"cod",en:"Cod",fr:"Cabillaud",w:["sea"],m:[1,2,3,10,11,12],t:[5,12],d:{c:[8,40],m:[10,40],w:[15,50]},tod:"night",
+  tech:{en:"Beach ledgering in rough winter seas, boat jigging on wrecks",fr:"Surfcasting par mer formée l'hiver, jigging en bateau sur épaves"},
+  bait:{en:"Lugworm, squid, crab, large soft lures",fr:"Arénicole, encornet, crabe, grands leurres souples"}},
+ {id:"ray",en:"Thornback ray",fr:"Raie bouclée",w:["sea"],m:[3,4,5,6,7,8,9,10],t:[8,16],d:{c:[5,20],m:[5,20],w:[8,25]},tod:"night",
+  tech:{en:"Ledgering on sand and mud, often after dark",fr:"Pêche au posé sur sable et vase, souvent de nuit"},
+  bait:{en:"Mackerel, sandeel, squid, crab",fr:"Maquereau, lançon, encornet, crabe"}},
+ {id:"flounder",en:"Flounder",fr:"Flet",w:["sea","river"],m:[1,2,3,10,11,12],t:[5,15],d:{c:[1,6],m:[1,5],w:[1,5]},tod:"day",
+  tech:{en:"Light ledgering in estuaries on the flooding tide",fr:"Pêche au posé légère en estuaire à la marée montante"},
+  bait:{en:"Peeler crab, ragworm, baited spoons",fr:"Crabe mou, néréis, cuiller appâtée"}},
+ {id:"pike",en:"Pike",fr:"Brochet",w:["lake","river"],m:[1,5,6,7,8,9,10,11,12],t:[8,18],d:{c:[4,10],m:[1,5],w:[3,8]},tod:"day",
+  tech:{en:"Lure fishing along weed edges and drop-offs; deadbait in winter",fr:"Leurres le long des herbiers et tombants ; poisson mort l'hiver"},
+  bait:{en:"Large soft shads, spinnerbaits, jerkbaits, spoons, deadbaits",fr:"Gros shads, spinnerbaits, jerkbaits, cuillers, poissons morts"},
+  note:{FR:{en:"Closed in 2nd-category waters roughly from late January to late April.",fr:"Fermé en 2e catégorie environ de fin janvier à fin avril."},UK:{en:"England: rivers have a coarse closed season, 15 March to 15 June.",fr:"Angleterre : rivières fermées du 15 mars au 15 juin."}}},
+ {id:"zander",en:"Zander",fr:"Sandre",w:["lake","river"],m:[1,5,6,7,8,9,10,11,12],t:[12,22],d:{c:[5,15],m:[3,8],w:[4,10]},tod:"dd",
+  tech:{en:"Vertical jigging or slow bottom-bounced soft lures; deadbait at dusk",fr:"Verticale ou leurres souples gratté au fond ; poisson mort au crépuscule"},
+  bait:{en:"Slim soft shads, finesse worms, small deadbaits",fr:"Shads fins, finesse, petits poissons morts"},
+  note:{FR:{en:"Closed with pike in 2nd-category waters (late January to late April).",fr:"Fermé avec le brochet en 2e catégorie (fin janvier à fin avril)."}}},
+ {id:"perch",en:"Perch",fr:"Perche",w:["lake","river"],m:[1,2,3,4,5,6,7,8,9,10,11,12],t:[12,22],d:{c:[4,10],m:[2,6],w:[3,8]},tod:"day",
+  tech:{en:"Drop-shot and small lures around structure",fr:"Drop-shot et petits leurres autour des structures"},
+  bait:{en:"Drop-shot worms, small spinners, worms, maggots",fr:"Vers drop-shot, petites cuillers, vers, asticots"}},
+ {id:"carp",en:"Carp",fr:"Carpe",w:["lake","river"],m:[1,2,3,4,5,6,7,8,9,10,11,12],t:[15,26],d:{c:[3,8],m:[1,4],w:[0.5,3]},tod:"night",
+  tech:{en:"Bolt rigs on the bottom with groundbait; surface fishing in summer",fr:"Montages autoferrants au fond avec amorçage ; pêche en surface l'été"},
+  bait:{en:"Boilies, sweetcorn, pellets, tiger nuts, bread",fr:"Bouillettes, maïs, pellets, noix tigrées, pain"},
+  note:{FR:{en:"Night carp fishing is only allowed on designated stretches.",fr:"La carpe de nuit n'est autorisée que sur les secteurs désignés."}}},
+ {id:"trout",en:"Brown trout",fr:"Truite fario",w:["lake","river"],m:[3,4,5,6,7,8,9],t:[8,16],d:{c:[2,8],m:[0.3,3],w:[3,10]},tod:"dd",
+  tech:{en:"Fly fishing, small spinners upstream, nymphing",fr:"Mouche, petites cuillers vers l'amont, nymphe"},
+  bait:{en:"Dry flies, nymphs, small spinners and minnows",fr:"Mouches sèches, nymphes, petites cuillers et poissons nageurs"},
+  note:{FR:{en:"1st-category waters open roughly March to September; check your département.",fr:"1re catégorie ouverte environ de mars à septembre ; vérifiez votre département."},UK:{en:"Seasons vary by river and region.",fr:"Les saisons varient selon la rivière et la région."}}},
+ {id:"blackbass",en:"Black bass",fr:"Black-bass",w:["lake","river"],c:["FR"],m:[5,6,7,8,9,10,11],t:[16,27],d:{c:[3,8],m:[1,4],w:[0.5,3]},tod:"dd",
+  tech:{en:"Soft plastics and topwater lures around cover",fr:"Leurres souples et de surface autour des caches"},
+  bait:{en:"Texas-rigged worms, frogs, crankbaits, spinnerbaits",fr:"Vers montés texan, grenouilles, crankbaits, spinnerbaits"},
+  note:{FR:{en:"Some départements protect it during spawning; check local rules.",fr:"Certains départements le protègent pendant le frai ; vérifiez localement."}}},
+ {id:"catfish",en:"Wels catfish",fr:"Silure",w:["lake","river"],c:["FR"],m:[4,5,6,7,8,9,10],t:[18,28],d:{c:[5,15],m:[3,10],w:[2,8]},tod:"night",
+  tech:{en:"Heavy gear: clonk, live or dead bait, big soft lures",fr:"Matériel lourd : clonk, vif ou mort, gros leurres souples"},
+  bait:{en:"Large live or dead fish, squid, worm bunches, big shads",fr:"Gros vifs ou morts, encornet, paquets de vers, gros shads"}},
+ {id:"roach",en:"Roach",fr:"Gardon",w:["lake","river"],m:[1,2,3,4,5,6,7,8,9,10,11,12],t:[10,20],d:{c:[2,5],m:[1,3],w:[1,3]},tod:"day",
+  tech:{en:"Float fishing or feeder with light lines",fr:"Coup au flotteur ou feeder en fil fin"},
+  bait:{en:"Maggots, casters, hemp, bread punch",fr:"Asticots, casters, chènevis, pain"},
+  note:{UK:{en:"England: rivers closed 15 March to 15 June.",fr:"Angleterre : rivières fermées du 15 mars au 15 juin."}}},
+ {id:"barbel",en:"Barbel",fr:"Barbeau",w:["river"],m:[1,2,3,6,7,8,9,10,11,12],t:[12,22],d:{c:[1,3],m:[0.5,3],w:[0.5,3]},tod:"dd",
+  tech:{en:"Ledgering or feeder in steady gravel runs",fr:"Pêche au posé ou feeder dans les courants réguliers sur gravier"},
+  bait:{en:"Pellets, luncheon meat, boilies, maggots",fr:"Pellets, pâté, bouillettes, asticots"},
+  note:{UK:{en:"England: rivers closed 15 March to 15 June.",fr:"Angleterre : rivières fermées du 15 mars au 15 juin."}}},
+ {id:"chub",en:"Chub",fr:"Chevesne",w:["river"],m:[1,2,3,4,5,6,7,8,9,10,11,12],t:[8,20],d:{c:[1,3],m:[0.5,2],w:[0.3,2]},tod:"day",
+  tech:{en:"Trotting a float, small lures, surface baits under trees",fr:"Flotteur en dérive, petits leurres, appâts en surface sous les arbres"},
+  bait:{en:"Bread, cheese paste, slugs, small crankbaits",fr:"Pain, pâte au fromage, limaces, petits crankbaits"},
+  note:{UK:{en:"England: rivers closed 15 March to 15 June.",fr:"Angleterre : rivières fermées du 15 mars au 15 juin."}}},
+ {id:"tench",en:"Tench",fr:"Tanche",w:["lake"],m:[5,6,7,8,9],t:[15,24],d:{c:[2,4],m:[1,3],w:[1,3]},tod:"dd",
+  tech:{en:"Float or feeder close to weed beds at first light",fr:"Flotteur ou feeder près des herbiers au petit matin"},
+  bait:{en:"Sweetcorn, worms, maggots, small pellets",fr:"Maïs, vers, asticots, petits pellets"}}
+];
+/* ---------- Astronomy (SunCalc-style formulas) ---------- */
+const rad=Math.PI/180, dayMs=864e5, J1970=2440588, J2000=2451545, ecl=rad*23.4397;
+const toDays=ms=>ms/dayMs-0.5+J1970-J2000;
+const RA=(l,b)=>Math.atan2(Math.sin(l)*Math.cos(ecl)-Math.tan(b)*Math.sin(ecl),Math.cos(l));
+const DEC=(l,b)=>Math.asin(Math.sin(b)*Math.cos(ecl)+Math.cos(b)*Math.sin(ecl)*Math.sin(l));
+const ALT=(H,phi,d)=>Math.asin(Math.sin(phi)*Math.sin(d)+Math.cos(phi)*Math.cos(d)*Math.cos(H));
+const sidereal=(d,lw)=>rad*(280.16+360.9856235*d)-lw;
+function sunCoords(d){const M=rad*(357.5291+0.98560028*d);const C=rad*(1.9148*Math.sin(M)+0.02*Math.sin(2*M)+0.0003*Math.sin(3*M));const L=M+C+rad*102.9372+Math.PI;return{dec:DEC(L,0),ra:RA(L,0)};}
+function moonCoords(d){const L=rad*(218.316+13.176396*d),M=rad*(134.963+13.064993*d),F=rad*(93.272+13.22935*d);const l=L+rad*6.289*Math.sin(M),b=rad*5.128*Math.sin(F);return{ra:RA(l,b),dec:DEC(l,b),dist:385001-20905*Math.cos(M)};}
+function bodyAlt(ms,lat,lon,moon){const d=toDays(ms);const c=moon?moonCoords(d):sunCoords(d);return ALT(sidereal(d,rad*-lon)-c.ra,rad*lat,c.dec)/rad;}
+function moonPhase(ms){const d=toDays(ms),s=sunCoords(d),m=moonCoords(d),sd=149598000;
+  const p=Math.acos(Math.sin(s.dec)*Math.sin(m.dec)+Math.cos(s.dec)*Math.cos(m.dec)*Math.cos(s.ra-m.ra));
+  const inc=Math.atan2(sd*Math.sin(p),m.dist-sd*Math.cos(p));
+  const ang=Math.atan2(Math.cos(s.dec)*Math.sin(s.ra-m.ra),Math.sin(s.dec)*Math.cos(m.dec)-Math.cos(s.dec)*Math.sin(m.dec)*Math.cos(s.ra-m.ra));
+  return{fraction:(1+Math.cos(inc))/2,phase:0.5+0.5*inc*(ang<0?-1:1)/Math.PI};}
+const interp=(t0,t1,a0,a1,h)=>t0+(t1-t0)*(h-a0)/(a1-a0);
+function scanEvents(start,end,lat,lon){
+  const step=6e5, ev={moon:[],sun:[]};
+  let pm=bodyAlt(start-step,lat,lon,true), m0=bodyAlt(start,lat,lon,true), s0=bodyAlt(start,lat,lon,false);
+  for(let t=start+step;t<=end;t+=step){
+    const m1=bodyAlt(t,lat,lon,true), s1=bodyAlt(t,lat,lon,false), tp=t-step;
+    if(m0<0.133&&m1>=0.133) ev.moon.push({type:"Moonrise",ms:interp(tp,t,m0,m1,0.133)});
+    if(m0>=0.133&&m1<0.133) ev.moon.push({type:"Moonset",ms:interp(tp,t,m0,m1,0.133)});
+    if(m0>pm&&m0>=m1) ev.moon.push({type:"Moon overhead",ms:tp,major:true});
+    if(m0<pm&&m0<=m1) ev.moon.push({type:"Moon underfoot",ms:tp,major:true});
+    if(s0<-0.833&&s1>=-0.833) ev.sun.push({type:"Sunrise",ms:interp(tp,t,s0,s1,-0.833)});
+    if(s0>=-0.833&&s1<-0.833) ev.sun.push({type:"Sunset",ms:interp(tp,t,s0,s1,-0.833)});
+    pm=m0; m0=m1; s0=s1;
+  }
+  return ev;
+}
+
+
+/* ================= HELPERS ================= */
+const $=s=>document.querySelector(s);
+const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const store={get(k,d){try{const v=localStorage.getItem(k);return v?JSON.parse(v):d;}catch(e){return d;}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v));}catch(e){}}};
+function parseLocal(s,off){const[d,h]=s.split("T");const[Y,M,D]=d.split("-").map(Number);const[hh,mm]=(h||"00:00").split(":").map(Number);return Date.UTC(Y,M-1,D,hh,mm)-off*1000;}
+const localStr=(ms,off)=>new Date(ms+off*1000).toISOString().slice(0,16);
+const hhmm=s=>s.slice(11,16);
+const fmt=(v,dp=0,u="")=>v==null||isNaN(v)?"–":v.toFixed(dp)+u;
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+const round05=v=>Math.round(v*2)/2;
+
+let LANG=store.get("maree-lang","fr"), COUNTRY=store.get("maree-country","FR");
+function t(k,vars){let s=(I18N[LANG]&&I18N[LANG][k])??I18N.en[k]??k;if(vars&&typeof s==="string")for(const v in vars)s=s.replace("{"+v+"}",vars[v]);return s;}
+const C=()=>COUNTRIES[COUNTRY];
+const spName=sp=>sp?sp[LANG]:"";
+const dirName=d=>d==null?"":t("dirs")[Math.round(d/45)%8];
+const compass=d=>d==null?"":(LANG==="fr"?["N","NE","E","SE","S","SO","O","NO"]:["N","NE","E","SE","S","SW","W","NW"])[Math.round(d/45)%8];
+const windDisp=v=>v==null?"–":C().windUnit==="mph"?Math.round(v*0.621371)+" mph":Math.round(v)+" km/h";
+const phaseName=p=>t("phases")[Math.round(p*8)%8];
+const dayLabel=(d,opts)=>new Date(d+"T12:00:00Z").toLocaleDateString(LANG==="fr"?"fr-FR":"en-GB",Object.assign({timeZone:"UTC"},opts));
+
+/* ================= STATE ================= */
+let S={spot:null,hours:[],all:[],days:[],dayIdx:0,planIdx:null,planSp:"auto",off:0,ev:null,flow:{}};
+
+/* ================= LOADING ================= */
+async function getJSON(url){const r=await fetch(url);if(!r.ok)throw new Error(r.status);return r.json();}
+
+async function load(spot){
+  S.spot=spot; store.set("maree-spot",spot);
+  const st=$("#status"); st.hidden=false; st.textContent=t("loading",{spot:spot.name}); clearError();
+  const {lat,lon}=spot, base=`latitude=${lat}&longitude=${lon}&timezone=auto`;
+  const wantMarine=spot.type==="sea"||spot.type==="auto";
+  const reqs=[
+    getJSON(`https://api.open-meteo.com/v1/forecast?${base}&past_days=7&forecast_days=7&hourly=temperature_2m,pressure_msl,wind_speed_10m,wind_gusts_10m,wind_direction_10m,cloud_cover,precipitation_probability&wind_speed_unit=kmh`),
+    wantMarine?getJSON(`https://marine-api.open-meteo.com/v1/marine?${base}&forecast_days=7&hourly=wave_height,wave_period,sea_surface_temperature`):Promise.reject("skip"),
+    wantMarine?getJSON(`https://marine-api.open-meteo.com/v1/marine?${base}&forecast_days=7&hourly=sea_level_height_msl`):Promise.reject("skip"),
+    spot.type==="river"?getJSON(`https://flood-api.open-meteo.com/v1/flood?${base}&daily=river_discharge&past_days=7&forecast_days=7`):Promise.reject("skip")
+  ];
+  const [wx,mar,sea,fl]=await Promise.allSettled(reqs);
+  if(wx.status!=="fulfilled"){ $("#fc").hidden=true; st.hidden=true; showError(t("loadError")); return; }
+  const W=wx.value, off=W.utc_offset_seconds||0; S.off=off;
+  const M=mar.status==="fulfilled"?mar.value.hourly:null;
+  const SL=sea.status==="fulfilled"?sea.value.hourly:null;
+  // Automatic water type: sea if the marine model has wave data here
+  if(spot.type==="auto"){ spot.type=(M&&M.wave_height&&M.wave_height.some(v=>v!=null))?"sea":"lake"; store.set("maree-spot",spot); }
+  const mIdx={}, sIdx={};
+  if(M) M.time.forEach((tm,i)=>mIdx[tm]=i);
+  if(SL&&SL.sea_level_height_msl) SL.time.forEach((tm,i)=>sIdx[tm]=i);
+  const h=W.hourly;
+  S.all=h.time.map((tm,i)=>{const mi=mIdx[tm], si=sIdx[tm], isSea=spot.type==="sea";
+    return {t:tm,ms:parseLocal(tm,off),day:tm.slice(0,10),hour:+tm.slice(11,13),
+      temp:h.temperature_2m[i],pres:h.pressure_msl[i],wind:h.wind_speed_10m[i],gust:h.wind_gusts_10m[i],
+      wdir:h.wind_direction_10m[i],cloud:h.cloud_cover[i],rain:h.precipitation_probability?.[i],
+      wave:isSea&&M&&mi!=null?M.wave_height[mi]:null,wper:isSea&&M&&mi!=null?M.wave_period[mi]:null,
+      sst:isSea&&M&&mi!=null?M.sea_surface_temperature[mi]:null,sea:isSea&&SL&&si!=null?SL.sea_level_height_msl[si]:null};});
+  // Water temperature: satellite/model for sea, estimated from recent air temperature for lakes and rivers
+  const win=spot.type==="lake"?168:72;
+  S.all.forEach((x,i)=>{
+    if(spot.type==="sea"){x.wt=x.sst;x.wtEst=false;}
+    else{const from=Math.max(0,i-win);let s=0,n=0;for(let j=from;j<=i;j++){if(S.all[j].temp!=null){s+=S.all[j].temp;n++;}}
+      x.wt=n?Math.max(1,s/n+(spot.type==="lake"?1:0)):null;x.wtEst=true;}
+  });
+  // River flow by day
+  S.flow={};
+  if(fl.status==="fulfilled"&&fl.value.daily){const d=fl.value.daily,q=d.river_discharge;
+    d.time.forEach((day,i)=>{const past=q.slice(Math.max(0,i-7),i).filter(v=>v!=null);if(q[i]==null||past.length<3)return;
+      const med=past.slice().sort((a,b)=>a-b)[Math.floor(past.length/2)], r=q[i]/med, prev=q[i-1];
+      let state,score;
+      if(r>2){state="flowFlood";score=0.2;}
+      else if(r>1.3){state=(prev!=null&&q[i]<prev)?"flowDropping":"flowHigh";score=state==="flowDropping"?0.85:0.55;}
+      else if(r<0.75){state="flowLow";score=0.7;}
+      else{state="flowNormal";score=1;}
+      S.flow[day]={q:q[i],state,score};});}
+  const todayStr=localStr(Date.now(),off).slice(0,10);
+  S.hours=S.all.filter(x=>x.day>=todayStr);
+  S.ev=scanEvents(S.hours[0].ms-dayMs,S.hours[S.hours.length-1].ms+dayMs,lat,lon);
+  scoreAll();
+  S.days=[...new Set(S.hours.map(x=>x.day))];
+  S.dayIdx=0; S.planIdx=null;
+  st.hidden=true; $("#fc").hidden=false;
+  renderForecast();
+}
+
+/* ================= GENERAL BITE SCORE ================= */
+const WEIGHTS={
+  sea:{pressure:20,solunar:18,tide:20,light:17,wind:10,moon:5,water:10},
+  lake:{pressure:22,solunar:18,light:20,wind:15,moon:5,water:20},
+  river:{pressure:18,solunar:15,flow:20,light:17,wind:8,moon:4,water:18}};
+const FKEY={pressure:"fPressure",solunar:"fSolunar",tide:"fTide",light:"fLight",wind:"fWind",moon:"fMoon",water:"fWater",flow:"fFlow"};
+
+function scoreAll(){
+  const H=S.hours, ev=S.ev, type=S.spot.type, Wt=WEIGHTS[type], ranges={};
+  H.forEach(h=>{if(h.sea!=null){const r=ranges[h.day]||(ranges[h.day]={min:1e9,max:-1e9});r.min=Math.min(r.min,h.sea);r.max=Math.max(r.max,h.sea);}});
+  const allIdx=new Map(S.all.map((x,i)=>[x,i]));
+  H.forEach((h,i)=>{
+    const f={}, mid=h.ms+18e5, ai=allIdx.get(h), p3=S.all[ai-3];
+    if(h.pres!=null&&p3&&p3.pres!=null){const dp=h.pres-p3.pres;h.dp=dp;
+      f.pressure=(dp<=-0.5&&dp>=-2.5)?1:Math.abs(dp)<0.5?0.75:dp<-2.5?0.5:dp<=1.5?0.5:0.25;}
+    let sol=0;h.sol=null;
+    for(const m of ev.moon){const dm=Math.abs(mid-m.ms)/6e4;
+      if(m.major){if(dm<=60){const v=1-dm/120;if(v>sol){sol=v;h.sol="majorP";}}}
+      else if(dm<=30){const v=0.6*(1-dm/60);if(v>sol){sol=v;h.sol="minorP";}}}
+    f.solunar=sol;
+    h.moon=moonPhase(mid);f.moon=Math.max(0,1-Math.min(h.moon.phase,Math.abs(h.moon.phase-0.5),1-h.moon.phase)/0.25);
+    h.tideDir=null;
+    if(type==="sea"){const R=ranges[h.day];
+      if(h.sea!=null&&R&&R.max-R.min>=0.3&&H[i-1]?.sea!=null&&H[i+1]?.sea!=null){
+        const rate=(H[i+1].sea-H[i-1].sea)/2;h.tideDir=rate>0.02?"tRising":rate<-0.02?"tFalling":"tSlack";
+        f.tide=0.2+0.8*Math.min(1,Math.abs(rate)/(0.253*(R.max-R.min)));}}
+    let tw=0;for(const s of ev.sun){const dm=Math.abs(mid-s.ms)/6e4;tw=Math.max(tw,dm<=60?1:dm<=120?1-(dm-60)/60:0);}
+    const sa=bodyAlt(mid,S.spot.lat,S.spot.lon,false);
+    h.light=sa<-6?"night":tw>=0.5?"tw":"day";
+    h.bright=h.light==="day"&&(h.cloud??50)<40;
+    f.light=Math.max(sa<-6?0.45:sa<0?0.7:0.25+0.35*((h.cloud||0)/100),tw);
+    if(h.wind!=null){let w;
+      if(type==="lake") w=h.wind<5?0.6:h.wind<=25?1:h.wind<=35?0.5:0.2;
+      else w=h.wind<5?0.7:h.wind<=20?1:h.wind<=30?0.5:0.15;
+      if(h.gust>45)w*=0.6; f.wind=w;}
+    if(h.wt!=null){const [a,b]=type==="sea"?[12,20]:[10,22];const dist=h.wt<a?a-h.wt:h.wt>b?h.wt-b:0;f.water=clamp(1-dist/8,0.2,1);}
+    if(type==="river"&&S.flow[h.day]){f.flow=S.flow[h.day].score;h.flow=S.flow[h.day];}
+    let num=0,den=0;for(const k in f){if(Wt[k]){num+=Wt[k]*f[k];den+=Wt[k];}}
+    h.f=f;h.score=Math.round(100*num/den);
+    h.unsafe=(h.wave!=null&&h.wave>2.5)||(h.gust!=null&&h.gust>(type==="sea"?50:60))||(h.flow&&h.flow.state==="flowFlood");
+  });
+}
+
+/* ================= SPECIES FIT ================= */
+function speciesFor(type){return SPECIES.filter(s=>s.w.includes(type)&&(!s.c||s.c.includes(COUNTRY)));}
+function inSeason(sp,day){return sp.m.includes(+day.slice(5,7));}
+function speciesScore(h,sp){
+  let tf=1;if(h.wt!=null){const[a,b]=sp.t;const dist=h.wt<a?a-h.wt:h.wt>b?h.wt-b:0;tf=clamp(1-dist/6,0,1);}
+  const L=h.light;let df;
+  if(sp.tod==="dd") df=L==="tw"?1:L==="night"?0.7:(h.cloud>70?0.75:0.55);
+  else if(sp.tod==="night") df=L==="night"?1:L==="tw"?0.85:0.4;
+  else df=L==="day"?1:L==="tw"?0.85:0.45;
+  return Math.round(0.65*h.score+35*tf*df);
+}
+function rankSpecies(h){return speciesFor(S.spot.type).filter(sp=>inSeason(sp,h.day)).map(sp=>({sp,s:speciesScore(h,sp)})).sort((a,b)=>b.s-a.s);}
+function bestWindow(hours,sp){let best=null;
+  for(let i=0;i<hours.length-1;i++){const a=hours[i],b=hours[i+1];if(a.unsafe||b.unsafe||b.ms-a.ms!==36e5)continue;
+    const s=sp?(speciesScore(a,sp)+speciesScore(b,sp))/2:(a.score+b.score)/2;if(!best||s>best.s)best={s:Math.round(s),h:a};}
+  return best;}
+
+/* ================= RECOMMENDATIONS ================= */
+function recommend(h,sp){
+  const wt=h.wt??14, band=wt<10?"c":wt<=17?"m":"w";
+  let[a,b]=sp.d[band];const midD=(a+b)/2;
+  const lowLight=h.light!=="day"||(h.wave!=null&&h.wave>1.2)||(h.flow&&["flowHigh","flowDropping"].includes(h.flow.state));
+  if(lowLight)b=midD;else if(h.bright)a=midD;
+  const nf=v=>round05(v).toLocaleString(LANG==="fr"?"fr-FR":"en-GB");const depth=`${nf(a)}–${nf(b)} m`;
+  const colour=lowLight||(h.cloud??0)>75?t("cDull"):t("cBright");
+  const speed=band==="c"?t("sCold"):band==="m"?t("sMild"):t("sWarm");
+  const where=[], type=S.spot.type;
+  if(type==="sea"){
+    if(h.tideDir==="tRising")where.push(t("pSeaRising"));
+    else if(h.tideDir==="tFalling")where.push(t("pSeaFalling"));
+    else if(h.tideDir==="tSlack")where.push(t("pSeaSlack"));
+    else where.push(t("pSeaNoTide"));
+    if(h.wave!=null&&h.wave>=0.5&&h.wave<=1.8&&sp.id==="bass")where.push(t("pSeaSurf"));
+    if(h.wave!=null&&h.wave<0.3&&h.bright)where.push(t("pSeaCalmBright"));
+  }else if(type==="lake"){
+    if(h.wind!=null&&h.wind>=8)where.push(t("pLakeWind",{from:dirName(h.wdir),bank:dirName((h.wdir+180)%360)}));
+    if(wt<10)where.push(t("pLakeCold"));else if(wt>18)where.push(t("pLakeWarm"));
+    if(h.light!=="day"&&wt>=10)where.push(t("pLakeLow"));
+  }else{
+    const st=h.flow?.state;
+    if(st==="flowHigh"||st==="flowFlood")where.push(t("pRiverHigh"));
+    else if(st==="flowDropping"){where.push(t("pRiverDropping"));where.push(t("pRiverHigh"));}
+    else if((st==="flowLow"||!st)&&wt>19)where.push(t("pRiverLowWarm"));
+    else where.push(t("pRiverNormal"));
+  }
+  return{depth,colour,speed,where,tech:sp.tech[LANG],bait:sp.bait[LANG]};
+}
+
+/* ================= LANGUAGE, COUNTRY, TABS ================= */
+function applyI18n(){
+  document.documentElement.lang=LANG;
+  document.querySelectorAll("[data-t]").forEach(el=>el.textContent=t(el.dataset.t));
+  document.querySelectorAll("[data-tp]").forEach(el=>el.placeholder=t(el.dataset.tp));
+  document.querySelectorAll(".lang button").forEach(b=>b.setAttribute("aria-pressed",b.dataset.lang===LANG));
+  $("#country").innerHTML=Object.keys(COUNTRIES).map(k=>`<option value="${k}" ${k===COUNTRY?"selected":""}>${COUNTRIES[k].label[LANG]}</option>`).join("");
+  $("#lWtLabel").textContent=C().wtUnit==="lb"?t("lWtLb"):t("lWtKg");
+  $("#legend").innerHTML=`<span><i style="background:var(--kelp)"></i>${t("good")} (70+)</span><span><i style="background:var(--fair)"></i>${t("fair")} (50–69)</span><span><i style="background:var(--slow)"></i>${t("slow")}</span><span><i style="background:var(--warn)"></i>${t("unsafe")}</span><span><i style="background:var(--tide);height:3px;vertical-align:3px"></i>${t("legendTide")}</span><span><i style="background:var(--buoy)"></i>${t("legendSol")}</span>`;
+}
+function fillSpots(){
+  const sp=C().spots, sel=$("#spot");
+  const grp=(type,key)=>`<optgroup label="${t(key)}">`+sp.map((s,i)=>s.type===type?`<option value="${i}">${esc(s.name)}</option>`:"").join("")+`</optgroup>`;
+  let html=grp("sea","groupSea")+grp("lake","groupLake")+grp("river","groupRiver");
+  if(S.spot&&!sp.some(s=>s.name===S.spot.name))html=`<option value="custom">${esc(S.spot.name)} (${t("custom")})</option>`+html;
+  sel.innerHTML=html;
+  const i=S.spot?sp.findIndex(s=>s.name===S.spot.name):-1;
+  sel.value=i>=0?String(i):(S.spot?"custom":"0");
+  $("#wtype").innerHTML=["sea","lake","river"].map(k=>`<option value="${k}">${t(k)}</option>`).join("");
+  if(S.spot&&S.spot.type!=="auto")$("#wtype").value=S.spot.type;
+  if(S.spot)$("#spotBadge").innerHTML=`<span class="badge ${S.spot.type}">${t(S.spot.type)||""}</span>`;
+}
+function rerenderAll(){applyI18n();fillSpots();if(S.hours.length)renderForecast();renderSpecies();renderLog();if(MAP.map)buildLayers();}
+
+document.querySelectorAll(".lang button").forEach(b=>b.onclick=()=>{LANG=b.dataset.lang;store.set("maree-lang",LANG);rerenderAll();});
+$("#country").onchange=e=>{COUNTRY=e.target.value;store.set("maree-country",COUNTRY);S.spot=null;fillSpots();
+  const first=C().spots[0];load({...first});rerenderAll();if(MAP.map)MAP.map.setView(C().center,C().zoom);};
+document.querySelectorAll("nav.tabs button").forEach(b=>b.onclick=()=>showTab(b.dataset.tab));
+function showTab(tab){
+  document.querySelectorAll("nav.tabs button").forEach(b=>b.setAttribute("aria-selected",b.dataset.tab===tab));
+  document.querySelectorAll(".page").forEach(p=>p.hidden=p.id!=="page-"+tab);
+  if(tab==="map")initMap();
+  if(tab==="log"){prefillLogTime();if(S.planSp!=="auto")$("#lSpecies").value=S.planSp;}
+  window.scrollTo(0,0);
+}
+
+/* ================= FORECAST PAGE ================= */
+const tier=s=>s>=70?"var(--kelp)":s>=50?"var(--fair)":"var(--slow)";
+const tierName=s=>s>=70?t("good"):s>=50?t("fair"):t("slow");
+function dayHours(){return S.hours.filter(h=>h.day===S.days[S.dayIdx]);}
+function reasons(h){const r=[];
+  if(h.sol)r.push(t(h.sol).split(",")[0].toLowerCase());
+  if(h.light==="tw")r.push(LANG==="fr"?"lumière de l'aube ou du crépuscule":"dawn or dusk light");
+  if(h.f.tide>0.8)r.push((LANG==="fr"?"marée ":"")+t(h.tideDir).toLowerCase()+(LANG==="fr"?"":" tide"));
+  if(h.f.pressure===1)r.push(LANG==="fr"?"pression en légère baisse":"gently falling pressure");
+  if(h.flow&&h.flow.state==="flowDropping")r.push(t(h.flow.state).toLowerCase());
+  if(h.f.wind===1)r.push(LANG==="fr"?"vent favorable":"good wind");
+  const s=r.slice(0,3).join(", ");return s?s[0].toUpperCase()+s.slice(1):"";}
+function isToday(d){return d===localStr(Date.now(),S.off).slice(0,10);}
+
+function renderForecast(){
+  fillSpots();
+  const D=dayHours(), day=S.days[S.dayIdx];
+  $("#days").setAttribute("aria-label",t("planWhen"));
+  $("#days").innerHTML=S.days.map((d,i)=>{const hs=S.hours.filter(h=>h.day===d);const best=Math.max(...hs.map(h=>h.unsafe?0:h.score));
+    return `<button type="button" data-d="${i}" aria-pressed="${i===S.dayIdx}"><span class="d">${dayLabel(d,{weekday:"short",day:"numeric"})}</span><span class="s">${best}</span></button>`;}).join("");
+  $("#days").querySelectorAll("button").forEach(b=>b.onclick=()=>{S.dayIdx=+b.dataset.d;S.planIdx=null;renderForecast();});
+  const bw=bestWindow(D), dname=isToday(day)?t("today"):dayLabel(day,{weekday:"long"});
+  if(bw){const top=rankSpecies(bw.h)[0];const end=String((bw.h.hour+2)%24).padStart(2,"0")+":00";
+    $("#hero").innerHTML=`<div>${esc(t("bestTime",{spot:S.spot.name,day:dname}))}</div><div class="big">${hhmm(bw.h.t)}–${end}</div><div class="why">${esc(reasons(bw.h))}</div>${top?`<div class="why">${esc(t("bestFor",{sp:spName(top.sp)}))}</div>`:""}<span class="pill">${t("biteScore")} ${bw.s}</span>`;
+    if(S.planIdx==null)S.planIdx=S.hours.indexOf(bw.h);
+  }else{
+    $("#hero").innerHTML=`<div>${esc(S.spot.name)}, ${dname}</div><div class="big">${t("stayAshore")}</div><div class="why">${t("unsafeDay")}</div>`;
+    if(S.planIdx==null)S.planIdx=S.hours.indexOf(D[0]);
+  }
+  drawChart(D); setupPlan(); renderPlan(); drawAlmanac(D);
+}
+
+function drawChart(D){
+  const H=200,base=150,x0=12,bw=19;let svg="";
+  D.forEach((h,i)=>{if(h.light==="night")svg+=`<rect x="${x0+i*bw}" y="8" width="${bw}" height="${base-8}" fill="var(--night)"/>`;});
+  D.forEach((h,i)=>{const x=x0+i*bw,bh=Math.max(3,h.score*1.15),sel=S.hours[S.planIdx]===h;
+    if(h.sol)svg+=`<rect x="${x+2}" y="${base+4}" width="${bw-4}" height="5" rx="2" fill="var(--buoy)"/>`;
+    svg+=`<rect x="${x+2}" y="${base-bh}" width="${bw-4}" height="${bh}" rx="3" fill="${h.unsafe?"var(--warn)":tier(h.score)}" ${sel?'stroke="var(--ink)" stroke-width="2"':""}/>`;
+    if(h.hour%3===0)svg+=`<text x="${x+bw/2}" y="${base+26}" font-size="11" text-anchor="middle" fill="var(--muted)" font-family="Barlow,sans-serif">${String(h.hour).padStart(2,"0")}</text>`;
+    svg+=`<rect x="${x}" y="0" width="${bw}" height="${H}" fill="transparent" data-i="${S.hours.indexOf(h)}" style="cursor:pointer"><title>${hhmm(h.t)}: ${h.score}</title></rect>`;});
+  const tide=D.filter(h=>h.sea!=null);
+  if(tide.length>3){const mn=Math.min(...tide.map(h=>h.sea)),mx=Math.max(...tide.map(h=>h.sea));
+    if(mx-mn>=0.3){const pts=D.map((h,i)=>h.sea==null?null:`${x0+i*bw+bw/2},${(20+(1-(h.sea-mn)/(mx-mn))*110).toFixed(1)}`).filter(Boolean).join(" ");
+      svg+=`<polyline points="${pts}" fill="none" stroke="var(--tide)" stroke-width="2.5" stroke-linejoin="round" pointer-events="none"/>`;}}
+  const now=Date.now(),ni=D.findIndex(h=>now>=h.ms&&now<h.ms+36e5);
+  if(ni>=0){const x=x0+ni*bw+bw*((now-D[ni].ms)/36e5);svg+=`<line x1="${x}" x2="${x}" y1="6" y2="${base+12}" stroke="var(--ink)" stroke-dasharray="3 3" pointer-events="none"/>`;}
+  $("#chart").innerHTML=svg;$("#chart").setAttribute("aria-label",t("hourByHour"));
+  $("#chart").querySelectorAll("rect[data-i]").forEach(r=>r.onclick=()=>{S.planIdx=+r.dataset.i;drawChart(dayHours());setupPlan();renderPlan();
+    document.querySelector(".plan").scrollIntoView({behavior:"smooth",block:"start"});});
+}
+
+/* ---------- Session planner ---------- */
+function setupPlan(){
+  const w=$("#planWhen");w.min=S.hours[0].t;w.max=S.hours[S.hours.length-1].t;
+  if(S.hours[S.planIdx])w.value=S.hours[S.planIdx].t;
+  const list=speciesFor(S.spot.type);
+  $("#planSpecies").innerHTML=`<option value="auto">${t("anySpecies")}</option>`+list.map(sp=>`<option value="${sp.id}">${esc(spName(sp))}</option>`).join("");
+  $("#planSpecies").value=list.some(s=>s.id===S.planSp)?S.planSp:"auto";
+}
+$("#planWhen").onchange=e=>{const v=e.target.value;if(!v)return;const key=v.slice(0,13);
+  const i=S.hours.findIndex(h=>h.t.slice(0,13)===key);
+  if(i<0){$("#planResult").innerHTML=`<p class="warn">${t("outOfRange")}</p>`;return;}
+  S.planIdx=i;const di=S.days.indexOf(S.hours[i].day);if(di!==S.dayIdx){S.dayIdx=di;renderForecast();}else{drawChart(dayHours());renderPlan();}};
+$("#planSpecies").onchange=e=>{S.planSp=e.target.value;renderPlan();};
+
+function renderPlan(){
+  const h=S.hours[S.planIdx];if(!h)return;
+  const ranked=rankSpecies(h);
+  let sp=S.planSp==="auto"?ranked[0]?.sp:SPECIES.find(s=>s.id===S.planSp);
+  if(!sp){$("#planResult").innerHTML=`<p>${t("noSpecies")}</p>`;renderDetail(h);return;}
+  const sc=speciesScore(h,sp), rec=recommend(h,sp), when=`${dayLabel(h.day,{weekday:"short",day:"numeric"})} ${hhmm(h.t)}`;
+  const dayBest=bestWindow(S.hours.filter(x=>x.day===h.day),sp), weekBest=bestWindow(S.hours,sp);
+  const fmtWin=b=>b?`${dayLabel(b.h.day,{weekday:"short",day:"numeric"})} ${hhmm(b.h.t)}–${String((b.h.hour+2)%24).padStart(2,"0")}:00 (${b.s})`:"–";
+  const note=sp.note&&sp.note[COUNTRY]?`<p class="note">${esc(sp.note[COUNTRY][LANG])}</p>`:"";
+  const off=!inSeason(sp,h.day)?`<p class="warn">${t("outSeason")}</p>`:"";
+  const alts=S.planSp==="auto"?ranked.slice(1,4):[];
+  $("#planResult").innerHTML=`
+   <div class="head"><h3>${esc(t("scoreAt",{sp:spName(sp),time:when}))}</h3><div><span class="num">${h.unsafe?"!":sc}</span> <span class="sub">${h.unsafe?t("unsafe"):tierName(sc)}</span></div></div>
+   ${h.unsafe?`<p class="warn">${t("unsafeWarn")}</p>`:""}${off}${note}
+   <div class="recs">
+    <div class="rec"><span>${t("depth")}</span><b>${rec.depth}</b></div>
+    <div class="rec"><span>${t("where")}</span><b>${rec.where.map(esc).join(" ")}</b></div>
+    <div class="rec"><span>${t("technique")}</span><b>${esc(rec.tech)}</b></div>
+    <div class="rec"><span>${t("lures")}</span><b>${esc(rec.bait)}</b></div>
+    <div class="rec"><span>${t("colour")}</span><b>${rec.colour}</b></div>
+    <div class="rec"><span>${t("speed")}</span><b>${rec.speed}</b></div>
+    <div class="rec"><span>${t("betterTime")}</span><b>${fmtWin(dayBest)}</b></div>
+    <div class="rec"><span>${t("bestWeek")}</span><b>${fmtWin(weekBest)}</b></div>
+   </div>
+   ${alts.length?`<div class="alts"><span class="sub">${t("alsoTry")}</span>${alts.map(a=>`<button type="button" data-sp="${a.sp.id}">${esc(spName(a.sp))} ${a.s}</button>`).join("")}</div>`:""}`;
+  $("#planResult").querySelectorAll(".alts button").forEach(b=>b.onclick=()=>{S.planSp=b.dataset.sp;$("#planSpecies").value=S.planSp;renderPlan();});
+  renderDetail(h);
+}
+
+function renderDetail(h){
+  const trend=h.dp==null?"":h.dp<=-0.5?t("pFalling"):h.dp>=0.5?t("pRising"):t("pSteady");
+  const type=S.spot.type, Wt=WEIGHTS[type];
+  const factors=Object.keys(Wt).map(k=>h.f[k]==null?"":`<div class="factor"><span>${t(FKEY[k])}</span><div class="barf"><i style="width:${Math.round(h.f[k]*100)}%"></i></div><span>${Math.round(h.f[k]*100)}</span></div>`).join("");
+  const cells=[[t("wind"),`${windDisp(h.wind)} ${compass(h.wdir)}`],[t("gusts"),windDisp(h.gust)],[t("pressure"),`${fmt(h.pres,0," hPa")} ${trend}`]];
+  if(type==="sea"){cells.push([t("tide"),h.tideDir?`${t(h.tideDir)} ${fmt(h.sea,2," m")}`:h.sea!=null?t("smallRange"):t("noData")]);
+    cells.push([t("waves"),h.wave!=null?`${fmt(h.wave,1," m")} / ${fmt(h.wper,0," s")}`:t("noData")]);}
+  if(type==="river")cells.push([t("flow"),h.flow?`${t(h.flow.state)} (${fmt(h.flow.q,0," m³/s")})`:t("noData")]);
+  cells.push([t("water"),h.wt!=null?`${fmt(h.wt,1," °C")}${h.wtEst?" ("+t("est")+")":""}`:t("noData")]);
+  cells.push([t("air"),`${fmt(h.temp,0," °C")}, ☁ ${fmt(h.cloud,0,"%")}`]);
+  cells.push([t("moon"),`${phaseName(h.moon.phase)}, ${Math.round(h.moon.fraction*100)}%`]);
+  $("#detail").innerHTML=`<h2>${t("conditions",{time:hhmm(h.t)})}</h2><div class="grid">${cells.map(c=>`<div><span>${c[0]}</span><b>${c[1]}</b></div>`).join("")}</div><div class="factors"><h3>${t("biteScore")} ${h.score}</h3>${factors}</div>`;
+}
+
+function drawAlmanac(D){
+  const day=S.days[S.dayIdx],items=[],inDay=ms=>localStr(ms,S.off).slice(0,10)===day;
+  S.ev.sun.filter(e=>inDay(e.ms)).forEach(e=>items.push({ms:e.ms,t:t(e.type),d:t("bestLight")}));
+  S.ev.moon.filter(e=>inDay(e.ms)).forEach(e=>items.push({ms:e.ms,t:t(e.type),d:e.major?t("majorP"):t("minorP")}));
+  for(let i=1;i<D.length-1;i++){const a=D[i-1].sea,b=D[i].sea,c=D[i+1].sea;if(a==null||b==null||c==null)continue;
+    if(b>a&&b>=c)items.push({ms:D[i].ms,t:t("highTide"),d:`${b.toFixed(2)} m (${t("approx")})`});
+    if(b<a&&b<=c)items.push({ms:D[i].ms,t:t("lowTide"),d:`${b.toFixed(2)} m (${t("approx")})`});}
+  items.sort((a,b)=>a.ms-b.ms);
+  const mp=moonPhase((D[12]||D[0]).ms);
+  $("#almanacList").innerHTML=`<li><span class="t">${phaseName(mp.phase)}, ${Math.round(mp.fraction*100)}% ${t("lit")}</span><br><span class="sub">${t("phaseNote")}</span></li>`+
+    items.map(x=>`<li><span class="t">${hhmm(localStr(x.ms,S.off))} ${x.t}</span><br><span class="sub">${x.d}</span></li>`).join("");
+}
+
+/* ---------- Errors and spot controls ---------- */
+function showError(msg){clearError();const d=document.createElement("div");d.className="msg";d.id="err";
+  d.innerHTML=`<p>${esc(msg)}</p><button class="btn primary" type="button">${t("retry")}</button>`;
+  d.querySelector("button").onclick=()=>load(S.spot);$("#status").after(d);}
+function clearError(){$("#err")?.remove();}
+$("#spot").onchange=e=>{if(e.target.value==="custom")return;S.planSp="auto";load({...C().spots[+e.target.value]});};
+$("#wtype").onchange=e=>{if(!S.spot)return;load({...S.spot,type:e.target.value});};
+$("#locate").onclick=()=>{
+  if(!navigator.geolocation){showError(t("locError"));return;}
+  $("#locate").textContent=t("locating");
+  navigator.geolocation.getCurrentPosition(p=>{$("#locate").textContent=t("useLocation");
+    load({name:`${p.coords.latitude.toFixed(3)}, ${p.coords.longitude.toFixed(3)}`,lat:+p.coords.latitude.toFixed(3),lon:+p.coords.longitude.toFixed(3),type:"auto"});},
+    ()=>{$("#locate").textContent=t("useLocation");showError(t("locError"));},{timeout:10000});};
+
+/* ================= MAP ================= */
+const MAP={map:null,control:null,base:{},over:{},windLayer:null,spotLayer:null,windTimer:null};
+function gibsDate(daysAgo){return new Date(Date.now()-daysAgo*dayMs).toISOString().slice(0,10);}
+function initMap(){
+  if(MAP.map){setTimeout(()=>MAP.map.invalidateSize(),50);renderSuggest();return;}
+  if(typeof L==="undefined"){$("#map").innerHTML=`<p style="padding:16px">${esc(t("loadError"))}</p>`;return;}
+  const m=L.map("map",{zoomControl:true}).setView(S.spot?[S.spot.lat,S.spot.lon]:C().center,S.spot?9:C().zoom);
+  MAP.map=m;
+  MAP.base.map=L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",{maxZoom:19,attribution:"© OpenStreetMap"});
+  MAP.base.sat=L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",{maxZoom:19,attribution:"© Esri"});
+  MAP.over.seamarks=L.tileLayer("https://tiles.openseamap.org/seamark/{z}/{x}/{y}.png",{maxZoom:18,attribution:"© OpenSeaMap"});
+  MAP.over.depth=L.tileLayer.wms("https://ows.emodnet-bathymetry.eu/wms",{layers:"emodnet:mean_atlas_land",format:"image/png",transparent:true,opacity:0.65,attribution:"© EMODnet Bathymetry"});
+  const gibs=(layer,days)=>L.tileLayer(`https://gibs.earthdata.nasa.gov/wmts/epsg3857/best/${layer}/default/${gibsDate(days)}/GoogleMapsCompatible_Level7/{z}/{y}/{x}.png`,{maxNativeZoom:7,maxZoom:19,opacity:0.6,attribution:"NASA GIBS"});
+  MAP.over.sst=gibs("GHRSST_L4_MUR_Sea_Surface_Temperature",2);
+  MAP.over.chl=gibs("MODIS_Aqua_Chlorophyll_A",3);
+  MAP.over.wind=MAP.windLayer=L.layerGroup();
+  MAP.over.spots=MAP.spotLayer=L.layerGroup();
+  MAP.base.map.addTo(m);MAP.spotLayer.addTo(m);
+  m.on("click",e=>openPointPopup(e.latlng));
+  m.on("overlayadd",e=>{if(e.layer===MAP.windLayer)refreshWind();});
+  m.on("moveend",()=>{if(m.hasLayer(MAP.windLayer)){clearTimeout(MAP.windTimer);MAP.windTimer=setTimeout(refreshWind,600);}});
+  buildLayers();
+  setTimeout(()=>m.invalidateSize(),50);
+}
+function buildLayers(){
+  if(!MAP.map)return;
+  if(MAP.control)MAP.control.remove();
+  MAP.control=L.control.layers({[t("lMap")]:MAP.base.map,[t("lSat")]:MAP.base.sat},
+    {[t("lSpots")]:MAP.over.spots,[t("lDepthLayer")]:MAP.over.depth,[t("lSeamarks")]:MAP.over.seamarks,[t("lSST")]:MAP.over.sst,[t("lChl")]:MAP.over.chl,[t("lWind")]:MAP.over.wind},{collapsed:true}).addTo(MAP.map);
+  drawSpotMarkers();renderSuggest();
+}
+function drawSpotMarkers(){
+  MAP.spotLayer.clearLayers();
+  const col={sea:"#3FD9FF",lake:"#5FE3A1",river:"#FFC14D"};
+  C().spots.forEach(s=>{L.circleMarker([s.lat,s.lon],{radius:9,color:"#06131F",weight:3,fillColor:col[s.type],fillOpacity:1})
+    .bindTooltip(`${s.name} (${t(s.type)})`).on("click",ev=>{L.DomEvent.stopPropagation(ev);goForecast({...s});}).addTo(MAP.spotLayer);});
+}
+function openPointPopup(ll){
+  const lat=+ll.lat.toFixed(3),lon=+ll.lng.toFixed(3);
+  const div=document.createElement("div");div.className="popup";
+  div.innerHTML=`<p><b>${lat}, ${lon}</b></p><label>${t("tapType")}<br><select>
+    <option value="auto">${t("auto")}</option><option value="sea">${t("sea")}</option><option value="lake">${t("lake")}</option><option value="river">${t("river")}</option></select></label><br>
+    <button class="btn primary small" type="button">${t("forecastHere")}</button>`;
+  div.querySelector("button").onclick=()=>goForecast({name:`${lat}, ${lon}`,lat,lon,type:div.querySelector("select").value});
+  L.popup().setLatLng(ll).setContent(div).openOn(MAP.map);
+}
+function goForecast(spot){S.planSp="auto";showTab("forecast");load(spot);}
+async function refreshWind(){
+  const m=MAP.map,b=m.getBounds(),n=5,lats=[],lons=[];
+  for(let i=0;i<n;i++)for(let j=0;j<n;j++){lats.push((b.getSouth()+(i+0.5)*(b.getNorth()-b.getSouth())/n).toFixed(3));lons.push((b.getWest()+(j+0.5)*(b.getEast()-b.getWest())/n).toFixed(3));}
+  try{
+    let data=await getJSON(`https://api.open-meteo.com/v1/forecast?latitude=${lats.join(",")}&longitude=${lons.join(",")}&current=wind_speed_10m,wind_direction_10m&wind_speed_unit=kmh`);
+    if(!Array.isArray(data))data=[data];
+    MAP.windLayer.clearLayers();
+    data.forEach(d=>{const c=d.current;if(!c)return;const rot=(c.wind_direction_10m+180)%360;
+      const html=`<svg width="26" height="26" viewBox="0 0 26 26" style="transform:rotate(${rot}deg)"><path d="M13 2 L19 14 H15 V24 H11 V14 H7 Z" fill="#12324A" stroke="#fff" stroke-width="1.2"/></svg><div>${windDisp(c.wind_speed_10m)}</div>`;
+      L.marker([d.latitude,d.longitude],{icon:L.divIcon({className:"windmark",html,iconSize:[50,44],iconAnchor:[25,13]}),interactive:false}).addTo(MAP.windLayer);});
+  }catch(e){/* wind layer stays empty if offline */}
+}
+function renderSuggest(){
+  const el=$("#suggest");if(!S.spot){el.innerHTML="";return;}
+  const type=S.spot.type==="auto"?"sea":S.spot.type;
+  const keys=type==="sea"?["depth","seamarks","sst","chl"]:["sat","wind"];
+  const names={depth:"lDepthLayer",seamarks:"lSeamarks",sst:"lSST",chl:"lChl",sat:"lSat",wind:"lWind"};
+  el.innerHTML=`<h3>${esc(t("suggested",{spot:S.spot.name}))}</h3><p>${keys.map(k=>t(names[k])).join(", ")}</p><p class="sub">${t(type==="sea"?"sugSea":type==="lake"?"sugLake":"sugRiver")}</p><button class="btn primary" type="button">${t("showSuggested")}</button>`;
+  el.querySelector("button").onclick=()=>{const m=MAP.map;
+    keys.forEach(k=>{if(k==="sat"){m.removeLayer(MAP.base.map);MAP.base.sat.addTo(m);}else if(!m.hasLayer(MAP.over[k]))MAP.over[k].addTo(m);});
+    if(keys.includes("depth")||keys.includes("sst")){if(!m.hasLayer(MAP.base.map)){m.removeLayer(MAP.base.sat);MAP.base.map.addTo(m);}}
+    m.setView([S.spot.lat,S.spot.lon],Math.max(m.getZoom(),type==="sea"?9:12));};
+}
+
+/* ================= SPECIES PAGE ================= */
+let SP_FILTER="all";
+function renderSpecies(){
+  const types=["all","sea","lake","river"];
+  $("#spFilter").innerHTML=types.map(k=>`<button type="button" data-f="${k}" aria-pressed="${k===SP_FILTER}">${t(k)}</button>`).join("");
+  $("#spFilter").querySelectorAll("button").forEach(b=>b.onclick=()=>{SP_FILTER=b.dataset.f;renderSpecies();});
+  const month=new Date().getMonth()+1, mn=t("months");
+  const seasonTxt=m=>{if(m.length===12)return LANG==="fr"?"Toute l'année":"All year";
+    const runs=[];let start=null;for(let i=1;i<=13;i++){const has=m.includes(((i-1)%12)+1)&&i<=12;if(has&&start==null)start=i;if(!has&&start!=null){runs.push([start,i-1]);start=null;}}
+    if(runs.length>1&&runs[0][0]===1&&runs[runs.length-1][1]===12){const f=runs.shift();runs[runs.length-1][1]=f[1]+12;}
+    return runs.map(r=>`${mn[r[0]-1]}–${mn[(r[1]-1)%12]}`).join(", ");};
+  const list=SPECIES.filter(s=>(!s.c||s.c.includes(COUNTRY))&&(SP_FILTER==="all"||s.w.includes(SP_FILTER)));
+  $("#spList").innerHTML=list.map(s=>`<article class="sp">
+    <h3>${esc(spName(s))} ${s.w.map(w=>`<span class="badge ${w}">${t(w)}</span>`).join(" ")} ${s.m.includes(month)?`<span class="pill" style="margin:0">${t("inSeason")}</span>`:""}</h3>
+    <dl><dt>${t("season")}</dt><dd>${seasonTxt(s.m)}</dd>
+    <dt>${t("bestTod")}</dt><dd>${t(s.tod)}</dd>
+    <dt>${t("idealTemp")}</dt><dd>${s.t[0]}–${s.t[1]} °C</dd>
+    <dt>${t("depthGuide")}</dt><dd>${t("cold")} ${s.d.c[0]}–${s.d.c[1]} m, ${t("mild")} ${s.d.m[0]}–${s.d.m[1]} m, ${t("warm")} ${s.d.w[0]}–${s.d.w[1]} m</dd>
+    <dt>${t("technique")}</dt><dd>${esc(s.tech[LANG])}</dd>
+    <dt>${t("lures")}</dt><dd>${esc(s.bait[LANG])}</dd></dl>
+    ${s.note&&s.note[COUNTRY]?`<p class="note">${esc(s.note[COUNTRY][LANG])}</p>`:""}</article>`).join("");
+}
+
+/* ================= CATCH LOG ================= */
+function prefillLogTime(){if(!$("#lWhen").value)$("#lWhen").value=localStr(Date.now(),S.off||-new Date().getTimezoneOffset()*60).slice(0,16);}
+function renderLog(){
+  const opts=SPECIES.filter(s=>!s.c||s.c.includes(COUNTRY));
+  const cur=$("#lSpecies").value;
+  $("#lSpecies").innerHTML=opts.map(s=>`<option value="${s.id}">${esc(spName(s))}</option>`).join("")+`<option value="other">${t("other")}</option>`;
+  if(cur)$("#lSpecies").value=cur;
+  $("#techList").innerHTML=opts.map(s=>`<option value="${esc(s.tech[LANG].split(/[;,]/)[0])}">`).join("");
+  $("#lureList").innerHTML=[...new Set(opts.flatMap(s=>s.bait[LANG].split(", ")))].map(b=>`<option value="${esc(b)}">`).join("");
+  const c=store.get("maree-catches",[]);
+  $("#logList").innerHTML=c.length?c.map((x,i)=>({x,i})).reverse().map(({x,i})=>{
+    const sp=SPECIES.find(s=>s.id===x.sp),name=sp?spName(sp):x.other||t("other");
+    const k=x.cond, cond=k?[`${t("biteScore")} ${k.score}`,`${t("wind")} ${windDisp(k.wind)} ${compass(k.wdir)}`,`${t("pressure")} ${fmt(k.pres,0," hPa")} ${k.trend?t(k.trend):""}`,
+      k.tide?`${t("tide")} ${t(k.tide).toLowerCase()}`:"",k.flow?`${t("flow")} ${t(k.flow).toLowerCase()}`:"",k.wt!=null?`${t("water")} ${fmt(k.wt,1," °C")}`:"",`${t("moon")} ${t("phases")[k.phase]}`].filter(Boolean).join(", "):"";
+    const gear=[x.tech,x.lure&&(x.lure+(x.col?` (${x.col})`:"")),x.depth&&`${x.depth} m`,x.line].filter(Boolean).map(esc).join(", ");
+    return `<li><span class="t">${esc(name)}${x.len?`, ${esc(x.len)} cm`:""}${x.wt?`, ${esc(x.wt)} ${x.wtUnit}`:""} <span class="sub">(${x.rel?t("released"):t("kept")})</span></span><br>
+      <span class="sub">${esc(x.spot)} (${t(x.type)}), ${esc(x.when.replace("T"," "))}</span>${gear?`<br>${gear}`:""}${cond?`<br><span class="sub">${cond}</span>`:""}${x.notes?`<br><i>${esc(x.notes)}</i>`:""}
+      <br><button class="btn small" type="button" data-del="${i}">${t("del")}</button></li>`;}).join(""):`<li class="sub">${t("emptyLog")}</li>`;
+  $("#logList").querySelectorAll("[data-del]").forEach(b=>b.onclick=()=>{const arr=store.get("maree-catches",[]);arr.splice(+b.dataset.del,1);store.set("maree-catches",arr);renderLog();});
+  renderInsights(c);
+}
+function renderInsights(c){
+  const withC=c.filter(x=>x.cond);
+  if(withC.length<3){$("#insights").innerHTML="";return;}
+  const top=(fn,label)=>{const cnt={};withC.forEach(x=>{const v=fn(x);if(v)cnt[v]=(cnt[v]||0)+1;});const e=Object.entries(cnt).sort((a,b)=>b[1]-a[1])[0];
+    return e?`<li>${t("insightLine",{n:e[1],t:withC.length,x:label(e[0])})}</li>`:"";};
+  $("#insights").innerHTML=`<h2>${t("insights")}</h2><div class="panel"><ul class="list">
+    ${top(x=>x.cond.trend,v=>`${t("pressure").toLowerCase()} ${t(v)}`)}
+    ${top(x=>x.cond.light,v=>t(v==="day"?"lightDay":v==="tw"?"lightTw":"lightNight"))}
+    ${top(x=>x.cond.tide,v=>`${t("tide").toLowerCase()} ${t(v).toLowerCase()}`)}
+    ${top(x=>x.cond.flow,v=>`${t("flow").toLowerCase()} ${t(v).toLowerCase()}`)}
+    ${top(x=>x.lure,v=>esc(v))}</ul></div>`;
+}
+$("#lSpecies").onchange=e=>{$("#lOtherWrap").hidden=e.target.value!=="other";};
+$("#logForm").onsubmit=e=>{e.preventDefault();
+  const when=$("#lWhen").value;if(!when||!S.spot)return;
+  const h=S.all.find(x=>x.t.slice(0,13)===when.slice(0,13));
+  const scored=h&&h.f?h:null;
+  const entry={sp:$("#lSpecies").value,other:$("#lOther").value.trim(),when,len:$("#lLen").value,wt:$("#lWt").value,wtUnit:C().wtUnit,
+    tech:$("#lTech").value.trim(),lure:$("#lLure").value.trim(),col:$("#lCol").value.trim(),depth:$("#lDepth").value,line:$("#lLine").value.trim(),
+    notes:$("#lNotes").value.trim(),rel:$("#lRel").checked,spot:S.spot.name,type:S.spot.type,lat:S.spot.lat,lon:S.spot.lon,
+    cond:h?{score:scored?scored.score:null,wind:h.wind,gust:h.gust,wdir:h.wdir,pres:h.pres,
+      trend:h.dp==null?null:h.dp<=-0.5?"pFalling":h.dp>=0.5?"pRising":"pSteady",tide:h.tideDir||null,flow:h.flow?.state||null,
+      wt:h.wt,waves:h.wave,cloud:h.cloud,light:h.light||null,phase:Math.round(moonPhase(h.ms).phase*8)%8}:null};
+  const arr=store.get("maree-catches",[]);arr.push(entry);store.set("maree-catches",arr);
+  ["lLen","lWt","lNotes","lOther"].forEach(id=>$("#"+id).value="");
+  $("#logMsg").textContent=h?t("saved"):t("savedNoCond");renderLog();};
+$("#exportCsv").onclick=()=>{
+  const c=store.get("maree-catches",[]);if(!c.length)return;
+  const cols=["when","species","length_cm","weight","weight_unit","released","spot","water_type","lat","lon","technique","lure","colour","depth_m","line","notes","bite_score","wind_kmh","gust_kmh","wind_dir","pressure_hpa","pressure_trend","tide","river_flow","water_c","waves_m","cloud_pct","light","moon_phase"];
+  const q=v=>`"${String(v??"").replace(/"/g,'""')}"`;
+  const rows=c.map(x=>{const k=x.cond||{},sp=SPECIES.find(s=>s.id===x.sp);
+    return[x.when,sp?spName(sp):x.other,x.len,x.wt,x.wtUnit,x.rel,x.spot,x.type,x.lat,x.lon,x.tech,x.lure,x.col,x.depth,x.line,x.notes,k.score,k.wind,k.gust,k.wdir,k.pres,k.trend&&t(k.trend),k.tide&&t(k.tide),k.flow&&t(k.flow),k.wt!=null?k.wt.toFixed(1):"",k.waves,k.cloud,k.light,k.phase!=null?t("phases")[k.phase]:""].map(q).join(",");});
+  const blob=new Blob(["\ufeff"+cols.join(",")+"\n"+rows.join("\n")],{type:"text/csv"});
+  const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="maree-catches.csv";document.body.appendChild(a);a.click();a.remove();};
+
+/* ================= START ================= */
+(function start(){
+  applyI18n();
+  const saved=store.get("maree-spot",null);
+  S.spot=saved&&saved.lat!=null?saved:{...C().spots[0]};
+  if(S.spot.type==="auto")S.spot.type="sea";
+  fillSpots();renderSpecies();renderLog();showTab("forecast");
+  load({...S.spot});
+})();
+</script>
+<script>
+if("serviceWorker" in navigator&&location.protocol==="https:"){addEventListener("load",()=>navigator.serviceWorker.register("sw.js").catch(()=>{}));}
+</script>
+</body>
+</html>
